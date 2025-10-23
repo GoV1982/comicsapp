@@ -12,6 +12,7 @@ import {
   X,
   User,
   Users,
+  DollarSign,
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -26,6 +27,7 @@ export default function AdminLayout() {
   { path: '/admin/comics', icon: BookOpen, label: 'Comics' },
   { path: '/admin/stock', icon: Package, label: 'Stock' },
   { path: '/admin/clientes', icon: Users, label: 'Clientes' },  // ← Agregar esta línea
+  { path: '/admin/ventas', icon: DollarSign, label: 'Ventas' }, // Nueva línea añadida
 ];
 
   const isActive = (path, exact = false) => {
