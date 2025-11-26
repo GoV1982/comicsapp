@@ -10,7 +10,8 @@ import Dashboard from './pages/admin/Dashboard';
 import Editoriales from './pages/admin/Editoriales';
 import Comics from './pages/admin/Comics';
 import Stock from './pages/admin/Stock';
-import Clientes from './pages/admin/';
+import Clientes from './pages/admin/Clientes';
+import Ventas from './pages/admin/Ventas';
 
 // Página pública (la crearemos después)
 import CatalogoPublico from './pages/CatalogoPublico';
@@ -40,6 +41,7 @@ function App() {
             <Route path="comics" element={<Comics />} />
             <Route path="stock" element={<Stock />} />
             <Route path="clientes" element={<Clientes />} />
+            <Route path="ventas" element={<Ventas />} />
           </Route>
           
           {/* Ruta por defecto */}
