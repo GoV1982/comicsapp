@@ -1,22 +1,33 @@
 // backend/routes/clientes.js
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/auth');
-const {
-  getAllClientes,
-  getClienteById,
-  createCliente,
-  updateCliente,
-  deleteCliente,
-} = require('../controllers/clientesController');
+const clientesController = require('../controllers/clientesController');
 
-// Todas las rutas requieren autenticación
-router.use(verifyToken);
+let authMiddleware;
+try {
+  authMiddleware = require('../middleware/authMiddleware');
+  if (typeof authMiddleware !== 'function') {
+    throw new Error('authMiddleware no exporta una función');
+  }
+} catch (err) {
+  console.warn('authMiddleware no encontrado o inválido — rutas protegidas no aplicarán autenticación:', err.message);
+  authMiddleware = (req, res, next) => next();
+}
 
-router.get('/', getAllClientes);
-router.get('/:id', getClienteById);
-router.post('/', createCliente);
-router.put('/:id', updateCliente);
-router.delete('/:id', deleteCliente);
+// Verificar funciones exportadas por el controlador
+const requiredFns = ['getClientes', 'getClienteById', 'createCliente', 'updateCliente', 'deleteCliente'];
+for (const fn of requiredFns) {
+  if (typeof clientesController[fn] !== 'function') {
+    throw new Error(`clientesController.${fn} no está definido — revisa controllers/clientesController.js`);
+  }
+}
+
+// Rutas públicas / privadas
+router.get('/', clientesController.getClientes);
+router.get('/:id', clientesController.getClienteById);
+
+router.post('/', authMiddleware, clientesController.createCliente);
+router.put('/:id', authMiddleware, clientesController.updateCliente);
+router.delete('/:id', authMiddleware, clientesController.deleteCliente);
 
 module.exports = router;

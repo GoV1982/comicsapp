@@ -1,20 +1,18 @@
 // backend/routes/auth.js
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/auth');
-const {
-  login,
-  changePassword,
-  getProfile,
-  verifyTokenController
-} = require('../controllers/authController');
+const { login, verifyToken, getProfile, changePassword } = require('../controllers/authController');
+const { auth } = require('../middleware/auth');
 
-// Rutas públicas
+// Verificar que las funciones existan
+if (!login) {
+    throw new Error('La función login no está definida en authController');
+}
+
+// Rutas de autenticación
 router.post('/login', login);
-
-// Rutas protegidas
-router.post('/change-password', verifyToken, changePassword);
-router.get('/profile', verifyToken, getProfile);
-router.get('/verify', verifyToken, verifyTokenController);
+router.get('/verify', auth, verifyToken);
+router.get('/profile', auth, getProfile);
+router.post('/change-password', auth, changePassword);
 
 module.exports = router;

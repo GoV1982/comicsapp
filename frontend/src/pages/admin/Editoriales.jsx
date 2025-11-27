@@ -29,7 +29,7 @@ export default function Editoriales() {
   const loadEditoriales = async () => {
     try {
       setLoading(true);
-      const response = await editorialesAPI.getAll();
+      const response = await editorialesAPI.getAllEditoriales();
       setEditoriales(response.data || []);
     } catch (error) {
       console.error('Error al cargar editoriales:', error);

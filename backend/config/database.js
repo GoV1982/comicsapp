@@ -1,22 +1,15 @@
 // backend/config/database.js
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const dbPath = path.join(__dirname, '..', 'database.db');
 
-// Crear conexión a la base de datos
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('❌ Error al conectar con la base de datos:', err.message);
-    process.exit(1);
-  }
-  console.log('✅ Conectado a la base de datos SQLite');
-});
+const db = new Database(dbPath);
 
 // Habilitar foreign keys
-db.run('PRAGMA foreign_keys = ON');
+db.exec('PRAGMA foreign_keys = ON');
 
 // Schema completo de la base de datos
 const schema = `
@@ -49,6 +42,7 @@ CREATE TABLE IF NOT EXISTS comics (
   subgenero TEXT,
   imagen_url TEXT,
   descripcion TEXT,
+  estado TEXT NOT NULL DEFAULT 'Disponible',
   fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
   fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (editorial_id) REFERENCES editoriales(id)
@@ -67,10 +61,17 @@ CREATE TABLE IF NOT EXISTS stock (
 CREATE TABLE IF NOT EXISTS clientes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT NOT NULL,
-  email TEXT,
+  email TEXT UNIQUE,
   telefono TEXT,
+  whatsapp TEXT,
+  password TEXT,
   direccion TEXT,
   notas TEXT,
+  email_verificado INTEGER DEFAULT 0,
+  token_verificacion TEXT,
+  fecha_verificacion DATETIME,
+  fecha_token_verificacion DATETIME,
+  ultimo_acceso DATETIME,
   fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -169,6 +170,9 @@ CREATE TABLE IF NOT EXISTS backups (
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_comics_editorial ON comics(editorial_id);
 CREATE INDEX IF NOT EXISTS idx_comics_genero ON comics(genero);
+CREATE INDEX IF NOT EXISTS idx_comics_titulo ON comics(titulo);
+CREATE INDEX IF NOT EXISTS idx_comics_numero_edicion ON comics(numero_edicion);
+CREATE INDEX IF NOT EXISTS idx_comics_imagen_url ON comics(imagen_url);
 CREATE INDEX IF NOT EXISTS idx_stock_comic ON stock(comic_id);
 CREATE INDEX IF NOT EXISTS idx_ventas_fecha ON ventas(fecha_venta);
 CREATE INDEX IF NOT EXISTS idx_ventas_cliente ON ventas(cliente_id);
@@ -215,100 +219,82 @@ WHEN NEW.fecha_expiracion IS NULL
 BEGIN
   SELECT datetime(NEW.fecha_reserva, '+15 days');
 END;
+
+-- Trigger: Eliminar stock cuando se elimina un comic (respaldo del CASCADE)
+CREATE TRIGGER IF NOT EXISTS delete_stock_on_comic_delete
+BEFORE DELETE ON comics
+BEGIN
+  DELETE FROM stock WHERE comic_id = OLD.id;
+END;
 `;
 
-// Función para inicializar la base de datos
-function initDatabase() {
-  return new Promise((resolve, reject) => {
-    db.serialize(async () => {
-      try {
-        // Ejecutar schema
-        await new Promise((res, rej) => {
-          db.exec(schema, (err) => {
-            if (err) rej(err);
-            else {
-              console.log('✅ Tablas creadas correctamente');
-              res();
-            }
-          });
-        });
+async function initDatabase() {
+  try {
+    // Ejecutar esquema y triggers
+    db.exec(schema);
+    console.log('✅ Tablas creadas correctamente');
+    db.exec(triggers);
+    console.log('✅ Triggers creados correctamente');
 
-        // Ejecutar triggers
-        await new Promise((res, rej) => {
-          db.exec(triggers, (err) => {
-            if (err) rej(err);
-            else {
-              console.log('✅ Triggers creados correctamente');
-              res();
-            }
-          });
-        });
+    // Crear usuario admin inicial si no existe
+    const adminUsername = process.env.ADMIN_USERNAME || 'Admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminName = process.env.ADMIN_NAME || 'Administrador';
+    const adminEmail = process.env.ADMIN_EMAIL || '';
 
-        // Crear usuario admin inicial si no existe
-        const adminUsername = process.env.ADMIN_USERNAME || 'Admin';
-        const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-        const adminName = process.env.ADMIN_NAME || 'Administrador';
-        const adminEmail = process.env.ADMIN_EMAIL || '';
-
-        db.get('SELECT id FROM usuarios WHERE username = ?', [adminUsername], async (err, row) => {
-          if (!row) {
-            const hashedPassword = await bcrypt.hash(adminPassword, 10);
-            db.run(
-              'INSERT INTO usuarios (username, password, nombre, email) VALUES (?, ?, ?, ?)',
-              [adminUsername, hashedPassword, adminName, adminEmail],
-              (err) => {
-                if (err) {
-                  console.error('❌ Error al crear usuario admin:', err.message);
-                } else {
-                  console.log('✅ Usuario admin creado correctamente');
-                  console.log(`   Usuario: ${adminUsername}`);
-                  console.log(`   Contraseña: ${adminPassword}`);
-                  console.log('   ⚠️  Cambia la contraseña después del primer login');
-                }
-              }
-            );
-          } else {
-            console.log('ℹ️  Usuario admin ya existe');
-          }
-        });
-
-        resolve();
-      } catch (error) {
-        reject(error);
-      }
-    });
-  });
+    const row = db.prepare('SELECT id FROM usuarios WHERE username = ?').get(adminUsername);
+    if (!row) {
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      db.prepare('INSERT INTO usuarios (username, password, nombre, email) VALUES (?, ?, ?, ?)')
+        .run(adminUsername, hashedPassword, adminName, adminEmail);
+      console.log('✅ Usuario admin creado correctamente');
+      console.log(`   Usuario: ${adminUsername}`);
+      console.log(`   Contraseña: ${adminPassword}`);
+      console.log('   ⚠️  Cambia la contraseña después del primer login');
+    } else {
+      console.log('ℹ️  Usuario admin ya existe');
+    }
+  } catch (error) {
+    console.error('❌ Error al inicializar la base de datos:', error);
+    throw error;
+  }
 }
 
-// Función helper para ejecutar queries
-function runQuery(sql, params = []) {
+const runQuery = (sql, params = []) => {
   return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-      if (err) reject(err);
-      else resolve({ id: this.lastID, changes: this.changes });
-    });
+    try {
+      const stmt = db.prepare(sql);
+      const info = stmt.run(...(Array.isArray(params) ? params : [params]));
+      resolve({ id: info.lastInsertRowid, changes: info.changes });
+    } catch (err) {
+      console.error('Database error during runQuery:');
+      console.error('SQL:', sql);
+      console.error('Params:', params);
+      console.error(err);
+      reject(err);
+    }
   });
-}
+};
 
-// Función helper para obtener un registro
-function getOne(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
-}
+const getOne = (sql, params = []) => {
+  try {
+    const stmt = db.prepare(sql);
+    const row = stmt.get(...params);
+    return Promise.resolve(row);
+  } catch (err) {
+    return Promise.reject(err);
+  }
+};
 
-// Función helper para obtener múltiples registros
-function getAll(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
-}
+const getAll = (sql, params = []) => {
+  try {
+    const stmt = db.prepare(sql);
+    const rows = stmt.all(...params);
+    return Promise.resolve(rows);
+  } catch (err) {
+    return Promise.reject(err);
+  }
+};
 
 module.exports = {
   db,

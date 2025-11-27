@@ -26,22 +26,24 @@ export default function Dashboard() {
 
   const loadStats = async () => {
     try {
-      const [comicsRes, editorialesRes, stockRes] = await Promise.all([
-        comicsAPI.getAll(),
-        editorialesAPI.getAll(),
-        stockAPI.getSummary(),
+      const paginationParams = { page: 1, limit: 1 }; // minimal data for totalItems extraction
+
+      const [comicsRes, editorialesRes, stockSummaryRes] = await Promise.all([
+        comicsAPI.getAllComics(paginationParams),
+        editorialesAPI.getAllEditoriales(paginationParams),
+        stockAPI.getStockSummary(),
       ]);
 
       setStats({
-        totalComics: comicsRes.count || 0,
-        totalEditoriales: editorialesRes.count || 0,
-        totalStock: stockRes.data?.total_unidades || 0,
-        sinStock: stockRes.data?.sin_stock || 0,
+        totalComics: comicsRes.pagination?.totalItems || comicsRes.count || 0,
+        totalEditoriales: editorialesRes.count || editorialesRes.data?.length || 0,
+        totalStock: stockSummaryRes.data?.total_unidades || 0,
+        sinStock: stockSummaryRes.data?.sin_stock || 0,
         loading: false,
       });
     } catch (error) {
       console.error('Error al cargar estadísticas:', error);
-      setStats({ ...stats, loading: false });
+      setStats(prevStats => ({ ...prevStats, loading: false }));
     }
   };
 
@@ -117,9 +119,8 @@ export default function Dashboard() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div
-                  className={`flex items-center justify-center w-12 h-12 bg-gradient-to-br ${
-                    colorClasses[stat.color]
-                  } rounded-xl shadow-lg`}
+                  className={`flex items-center justify-center w-12 h-12 bg-gradient-to-br ${colorClasses[stat.color]
+                    } rounded-xl shadow-lg`}
                 >
                   <Icon className="w-6 h-6 text-white" />
                 </div>
@@ -129,7 +130,7 @@ export default function Dashboard() {
                   </span>
                 )}
               </div>
-              
+
               <div className="mb-4">
                 <p className="text-sm font-medium text-gray-600 mb-1">
                   {stat.title}

@@ -421,10 +421,24 @@ const getEstadisticas = async (req, res) => {
   }
 };
 
+// Actualizar venta (placeholder - implementar según reglas de negocio)
+const updateVenta = async (req, res) => {
+  try {
+    // Implementar actualización según estructura de ventas/ventas_detalle
+    return res.status(501).json({ error: 'Not implemented', message: 'updateVenta no implementado' });
+  } catch (error) {
+    console.error('Error al actualizar venta:', error);
+    res.status(500).json({ error: 'Error en el servidor', message: error.message });
+  }
+};
+
 module.exports = {
+  // alias para compatibilidad con rutas que esperan getVentas
+  getVentas: getAllVentas,
   getAllVentas,
   getVentaById,
   createVenta,
+  updateVenta,
   deleteVenta,
   getEstadisticas,
 };

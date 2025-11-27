@@ -1,22 +1,16 @@
 // backend/routes/editoriales.js
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../middleware/auth');
-const {
-  getAllEditoriales,
-  getEditorialById,
-  createEditorial,
-  updateEditorial,
-  deleteEditorial
-} = require('../controllers/editorialesController');
+const editorialesController = require('../controllers/editorialesController');
+const authMiddleware = require('../middleware/authMiddleware');
 
-// Todas las rutas requieren autenticación
-router.use(verifyToken);
+// Rutas públicas
+router.get('/', editorialesController.getAllEditoriales);
+router.get('/:id', editorialesController.getEditorialById);
 
-router.get('/', getAllEditoriales);
-router.get('/:id', getEditorialById);
-router.post('/', createEditorial);
-router.put('/:id', updateEditorial);
-router.delete('/:id', deleteEditorial);
+// Rutas protegidas
+router.post('/', authMiddleware, editorialesController.createEditorial);
+router.put('/:id', authMiddleware, editorialesController.updateEditorial);
+router.delete('/:id', authMiddleware, editorialesController.deleteEditorial);
 
 module.exports = router;

@@ -1,11 +1,11 @@
 // backend/controllers/clientesController.js
-const { getAll, getOne, runQuery } = require('../config/database');
+const { runQuery, getOne, getAll } = require('../config/database'); // ajusta si tu helper tiene otro nombre
 
 // Obtener todos los clientes
-const getAllClientes = async (req, res) => {
+const getClientes = async (req, res) => {
   try {
     const { search } = req.query;
-    
+
     let query = 'SELECT * FROM clientes WHERE 1=1';
     const params = [];
 
@@ -64,7 +64,6 @@ const createCliente = async (req, res) => {
   try {
     const { nombre, email, telefono, direccion, notas } = req.body;
 
-    // Validar campos obligatorios
     if (!nombre || nombre.trim() === '') {
       return res.status(400).json({
         error: 'Datos incompletos',
@@ -72,13 +71,8 @@ const createCliente = async (req, res) => {
       });
     }
 
-    // Verificar si el email ya existe (si se proporciona)
     if (email && email.trim() !== '') {
-      const exists = await getOne(
-        'SELECT id FROM clientes WHERE email = ?',
-        [email.trim()]
-      );
-
+      const exists = await getOne('SELECT id FROM clientes WHERE email = ?', [email.trim()]);
       if (exists) {
         return res.status(400).json({
           error: 'Email duplicado',
@@ -87,7 +81,6 @@ const createCliente = async (req, res) => {
       }
     }
 
-    // Crear cliente
     const result = await runQuery(
       'INSERT INTO clientes (nombre, email, telefono, direccion, notas) VALUES (?, ?, ?, ?, ?)',
       [
@@ -99,11 +92,13 @@ const createCliente = async (req, res) => {
       ]
     );
 
+    const id = result.lastID ?? result.insertId ?? result.id ?? null;
+
     res.status(201).json({
       success: true,
       message: 'Cliente creado correctamente',
       data: {
-        id: result.id,
+        id,
         nombre: nombre.trim(),
         email: email ? email.trim() : null,
         telefono: telefono ? telefono.trim() : null,
@@ -126,7 +121,6 @@ const updateCliente = async (req, res) => {
     const { id } = req.params;
     const { nombre, email, telefono, direccion, notas } = req.body;
 
-    // Validar campos obligatorios
     if (!nombre || nombre.trim() === '') {
       return res.status(400).json({
         error: 'Datos incompletos',
@@ -134,9 +128,7 @@ const updateCliente = async (req, res) => {
       });
     }
 
-    // Verificar que existe
     const cliente = await getOne('SELECT id FROM clientes WHERE id = ?', [id]);
-
     if (!cliente) {
       return res.status(404).json({
         error: 'Cliente no encontrado',
@@ -144,13 +136,8 @@ const updateCliente = async (req, res) => {
       });
     }
 
-    // Verificar si el email ya existe en otro cliente (si se proporciona)
     if (email && email.trim() !== '') {
-      const duplicate = await getOne(
-        'SELECT id FROM clientes WHERE email = ? AND id != ?',
-        [email.trim(), id]
-      );
-
+      const duplicate = await getOne('SELECT id FROM clientes WHERE email = ? AND id != ?', [email.trim(), id]);
       if (duplicate) {
         return res.status(400).json({
           error: 'Email duplicado',
@@ -159,7 +146,6 @@ const updateCliente = async (req, res) => {
       }
     }
 
-    // Actualizar cliente
     await runQuery(
       'UPDATE clientes SET nombre = ?, email = ?, telefono = ?, direccion = ?, notas = ? WHERE id = ?',
       [
@@ -176,7 +162,7 @@ const updateCliente = async (req, res) => {
       success: true,
       message: 'Cliente actualizado correctamente',
       data: {
-        id: parseInt(id),
+        id: Number(id),
         nombre: nombre.trim(),
         email: email ? email.trim() : null,
         telefono: telefono ? telefono.trim() : null,
@@ -198,45 +184,31 @@ const deleteCliente = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verificar que existe
     const cliente = await getOne('SELECT * FROM clientes WHERE id = ?', [id]);
-
     if (!cliente) {
-      return res.status(404).json({
-        error: 'Cliente no encontrado',
-        message: `No existe un cliente con ID ${id}`,
-      });
+      return res.status(404).json({ error: 'Cliente no encontrado', message: `No existe un cliente con ID ${id}` });
     }
 
-    // Verificar si tiene ventas asociadas
-    const ventasCount = await getOne(
-      'SELECT COUNT(*) as count FROM ventas WHERE cliente_id = ?',
-      [id]
-    );
-
-    if (ventasCount.count > 0) {
+    const ventasCountRow = await getOne('SELECT COUNT(*) as count FROM ventas WHERE cliente_id = ?', [id]);
+    const ventasCount = ventasCountRow?.count ?? 0;
+    if (ventasCount > 0) {
       return res.status(400).json({
         error: 'Cliente con ventas asociadas',
-        message: `No se puede eliminar "${cliente.nombre}" porque tiene ${ventasCount.count} venta(s) registrada(s)`,
-        ventasCount: ventasCount.count,
+        message: `No se puede eliminar "${cliente.nombre}" porque tiene ${ventasCount} venta(s) registrada(s)`,
+        ventasCount,
       });
     }
 
-    // Verificar si tiene reservas asociadas
-    const reservasCount = await getOne(
-      'SELECT COUNT(*) as count FROM reservas WHERE cliente_id = ?',
-      [id]
-    );
-
-    if (reservasCount.count > 0) {
+    const reservasCountRow = await getOne('SELECT COUNT(*) as count FROM reservas WHERE cliente_id = ?', [id]);
+    const reservasCount = reservasCountRow?.count ?? 0;
+    if (reservasCount > 0) {
       return res.status(400).json({
         error: 'Cliente con reservas asociadas',
-        message: `No se puede eliminar "${cliente.nombre}" porque tiene ${reservasCount.count} reserva(s) registrada(s)`,
-        reservasCount: reservasCount.count,
+        message: `No se puede eliminar "${cliente.nombre}" porque tiene ${reservasCount} reserva(s) registrada(s)`,
+        reservasCount,
       });
     }
 
-    // Eliminar cliente
     await runQuery('DELETE FROM clientes WHERE id = ?', [id]);
 
     res.json({
@@ -253,7 +225,7 @@ const deleteCliente = async (req, res) => {
 };
 
 module.exports = {
-  getAllClientes,
+  getClientes,
   getClienteById,
   createCliente,
   updateCliente,

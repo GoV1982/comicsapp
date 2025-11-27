@@ -13,6 +13,7 @@ import {
   User,
   Users,
   DollarSign,
+  Settings,
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -26,8 +27,9 @@ export default function AdminLayout() {
   { path: '/admin/editoriales', icon: Building2, label: 'Editoriales' },
   { path: '/admin/comics', icon: BookOpen, label: 'Comics' },
   { path: '/admin/stock', icon: Package, label: 'Stock' },
-  { path: '/admin/clientes', icon: Users, label: 'Clientes' },  // ← Agregar esta línea
-  { path: '/admin/ventas', icon: DollarSign, label: 'Ventas' }, // Nueva línea añadida
+  { path: '/admin/clientes', icon: Users, label: 'Clientes' },
+  { path: '/admin/ventas', icon: DollarSign, label: 'Ventas' },
+  { path: '/admin/configuracion', icon: Settings, label: 'Configuración' },
 ];
 
   const isActive = (path, exact = false) => {
@@ -45,10 +47,10 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar Desktop */}
-      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0">
-        <div className="flex flex-col h-full">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 bg-white border-r border-gray-200">
+        <div className="flex flex-col h-screen sticky top-0">
           {/* Logo */}
           <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-200">
             <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg">
@@ -65,7 +67,7 @@ export default function AdminLayout() {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path, item.exact);
-              
+
               return (
                 <Link
                   key={item.path}
@@ -149,7 +151,7 @@ export default function AdminLayout() {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path, item.exact);
-              
+
               return (
                 <Link
                   key={item.path}
@@ -195,7 +197,7 @@ export default function AdminLayout() {
       </aside>
 
       {/* Contenido Principal */}
-      <div className="lg:pl-64">
+      <div className="flex-1 flex flex-col">
         {/* Header Mobile */}
         <header className="sticky top-0 z-30 bg-white border-b border-gray-200 lg:hidden">
           <div className="flex items-center justify-between px-4 py-3">
@@ -216,7 +218,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Contenido de las páginas */}
-        <main className="p-4 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8 overflow-auto">
           <Outlet />
         </main>
       </div>

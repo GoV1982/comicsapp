@@ -40,10 +40,11 @@ export default function Clientes() {
   const loadClientes = async () => {
     try {
       setLoading(true);
-      const response = await clientesAPI.getAll();
-      setClientes(response.data || []);
+      const response = await clientesAPI.getAllClientes();
+      setClientes(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
+      setClientes([]);
     } finally {
       setLoading(false);
     }
@@ -86,9 +87,9 @@ export default function Clientes() {
 
     try {
       if (editingId) {
-        await clientesAPI.update(editingId, formData);
+        await clientesAPI.updateCliente(editingId, formData);
       } else {
-        await clientesAPI.create(formData);
+        await clientesAPI.createCliente(formData);
       }
       await loadClientes();
       handleCloseModal();
@@ -105,7 +106,7 @@ export default function Clientes() {
     }
 
     try {
-      await clientesAPI.delete(id);
+      await clientesAPI.deleteCliente(id);
       await loadClientes();
     } catch (error) {
       const message = error.response?.data?.message || 'Error al eliminar el cliente';

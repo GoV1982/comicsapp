@@ -15,36 +15,74 @@ import {
 } from 'lucide-react';
 import { stockAPI } from '../../services/api';
 
+
 export default function Stock() {
   const [stock, setStock] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStock, setFilterStock] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(50);
+  const [pagination, setPagination] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [adjustData, setAdjustData] = useState({
-    comic_id: null,
+    stock_id: null,
     comic_titulo: '',
     cantidad_actual: 0,
     ajuste: '',
     motivo: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
 
+  // Initial load
   useEffect(() => {
-    loadData();
+    loadInitialData();
   }, []);
 
-  const loadData = async () => {
+  // Debounce search term (200ms)
+  useEffect(() => {
+    if (searchTerm) {
+      setIsSearching(true);
+    }
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setIsSearching(false);
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      setIsSearching(false);
+    };
+  }, [searchTerm]);
+
+  // Load filtered data when filters change (not during initial load)
+  useEffect(() => {
+    if (!loading) {
+      loadFilteredData();
+    }
+  }, [debouncedSearchTerm, filterStock, currentPage]);
+
+  const loadInitialData = async () => {
     try {
       setLoading(true);
+      const params = {
+        page: currentPage,
+        limit: itemsPerPage,
+      };
+
       const [stockRes, summaryRes] = await Promise.all([
-        stockAPI.getAll(),
-        stockAPI.getSummary(),
+        stockAPI.getAllStock(params),
+        stockAPI.getStockSummary(),
       ]);
+
       setStock(stockRes.data || []);
+      setPagination(stockRes.pagination || null);
       setSummary(summaryRes.data || null);
     } catch (error) {
       console.error('Error al cargar stock:', error);
@@ -53,15 +91,40 @@ export default function Stock() {
     }
   };
 
-  const handleUpdateStock = async (comicId) => {
+  const loadFilteredData = async () => {
+    try {
+      setIsFiltering(true);
+      const params = {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: debouncedSearchTerm,
+        filterStock: filterStock !== 'all' ? filterStock : undefined,
+      };
+
+      const [stockRes, summaryRes] = await Promise.all([
+        stockAPI.getAllStock(params),
+        stockAPI.getStockSummary(),
+      ]);
+
+      setStock(stockRes.data || []);
+      setPagination(stockRes.pagination || null);
+      setSummary(summaryRes.data || null);
+    } catch (error) {
+      console.error('Error al filtrar stock:', error);
+    } finally {
+      setIsFiltering(false);
+    }
+  };
+
+  const handleUpdateStock = async (stockId) => {
     if (!editValue || isNaN(editValue) || parseInt(editValue) < 0) {
       alert('Ingresa una cantidad válida (mayor o igual a 0)');
       return;
     }
 
     try {
-      await stockAPI.update(comicId, parseInt(editValue));
-      await loadData();
+      await stockAPI.updateStock(stockId, { cantidad_disponible: parseInt(editValue) });
+      await loadFilteredData();
       setEditingId(null);
       setEditValue('');
     } catch (error) {
@@ -72,7 +135,7 @@ export default function Stock() {
 
   const handleOpenAdjustModal = (item) => {
     setAdjustData({
-      comic_id: item.comic_id,
+      stock_id: item.id,
       comic_titulo: item.titulo,
       cantidad_actual: item.cantidad_disponible,
       ajuste: '',
@@ -84,7 +147,7 @@ export default function Stock() {
   const handleCloseAdjustModal = () => {
     setShowAdjustModal(false);
     setAdjustData({
-      comic_id: null,
+      stock_id: null,
       comic_titulo: '',
       cantidad_actual: 0,
       ajuste: '',
@@ -94,7 +157,7 @@ export default function Stock() {
 
   const handleAdjustStock = async (e) => {
     e.preventDefault();
-    
+
     if (!adjustData.ajuste || adjustData.ajuste === '0') {
       alert('El ajuste debe ser diferente de 0');
       return;
@@ -103,11 +166,11 @@ export default function Stock() {
     try {
       setSubmitting(true);
       await stockAPI.adjust(
-        adjustData.comic_id,
+        adjustData.stock_id,
         parseInt(adjustData.ajuste),
-        adjustData.motivo
+        adjustData.motivo || ''
       );
-      await loadData();
+      await loadFilteredData();
       handleCloseAdjustModal();
     } catch (error) {
       alert(error.response?.data?.message || 'Error al ajustar el stock');
@@ -116,21 +179,8 @@ export default function Stock() {
     }
   };
 
-  const filteredStock = stock.filter((item) => {
-    const matchSearch =
-      item.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.editorial_nombre?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchFilter =
-      filterStock === 'all' ||
-      (filterStock === 'sin_stock' && item.cantidad_disponible === 0) ||
-      (filterStock === 'bajo_stock' &&
-        item.cantidad_disponible > 0 &&
-        item.cantidad_disponible < 5) ||
-      (filterStock === 'disponible' && item.cantidad_disponible >= 5);
-
-    return matchSearch && matchFilter;
-  });
+  // Since filtering is now done on the backend, we can use stock directly
+  const filteredStock = stock;
 
   const getStockColor = (cantidad) => {
     if (cantidad === 0) return 'text-red-600 bg-red-50';
@@ -230,7 +280,7 @@ export default function Stock() {
 
       {/* Filtros y Búsqueda */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Búsqueda */}
+        {/* Búsqueda Mejorada */}
         <div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -239,9 +289,30 @@ export default function Stock() {
               placeholder="Buscar por título o editorial..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input pl-10"
+              className="input pl-10 pr-10"
             />
+            {/* Indicador de búsqueda y botón limpiar */}
+            {searchTerm && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {isSearching && (
+                  <Loader2 className="w-4 h-4 text-primary-600 animate-spin" />
+                )}
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  title="Limpiar búsqueda"
+                >
+                  <XIcon className="w-4 h-4 text-gray-400" />
+                </button>
+              </div>
+            )}
           </div>
+          {/* Contador de resultados */}
+          {searchTerm && !isFiltering && pagination && (
+            <div className="text-xs text-gray-500 mt-1">
+              {pagination.total} resultado{pagination.total !== 1 ? 's' : ''}
+            </div>
+          )}
         </div>
 
         {/* Filtro por Estado */}
@@ -261,6 +332,14 @@ export default function Stock() {
           </div>
         </div>
       </div>
+
+      {/* Indicador de filtrado */}
+      {isFiltering && (
+        <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Filtrando...</span>
+        </div>
+      )}
 
       {/* Tabla de Stock */}
       {filteredStock.length === 0 ? (
@@ -308,25 +387,13 @@ export default function Stock() {
                   >
                     {/* Comic */}
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        {item.imagen_url && (
-                          <img
-                            src={item.imagen_url}
-                            alt={item.titulo}
-                            className="w-12 h-16 object-cover rounded"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
-                          />
-                        )}
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {item.titulo}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            #{item.numero_edicion}
-                          </p>
-                        </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {item.titulo}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          #{item.numero_edicion}
+                        </p>
                       </div>
                     </td>
 
@@ -353,9 +420,17 @@ export default function Stock() {
                             onChange={(e) => setEditValue(e.target.value)}
                             className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                handleUpdateStock(item.id);
+                              } else if (e.key === 'Escape') {
+                                setEditingId(null);
+                                setEditValue('');
+                              }
+                            }}
                           />
                           <button
-                            onClick={() => handleUpdateStock(item.comic_id)}
+                            onClick={() => handleUpdateStock(item.id)}
                             className="p-1 text-green-600 hover:bg-green-50 rounded"
                           >
                             <Check className="w-5 h-5" />
@@ -394,8 +469,8 @@ export default function Stock() {
                         {item.cantidad_disponible === 0
                           ? 'Sin stock'
                           : item.cantidad_disponible < 5
-                          ? 'Bajo'
-                          : 'Disponible'}
+                            ? 'Bajo'
+                            : 'Disponible'}
                       </span>
                     </td>
 
@@ -433,19 +508,44 @@ export default function Stock() {
         </div>
       )}
 
-      {/* Contador */}
-      {stock.length > 0 && (
-        <div className="card text-center">
-          <p className="text-gray-600">
-            Mostrando:{' '}
+      {/* Paginación y Contador */}
+      {pagination && (
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          {/* Contador */}
+          <div className="text-sm text-gray-600">
+            Mostrando{' '}
             <span className="font-bold text-primary-600">
-              {filteredStock.length}
-            </span>
-            {filteredStock.length !== stock.length && (
-              <span className="text-gray-500"> de {stock.length}</span>
-            )}{' '}
+              {((pagination.page - 1) * pagination.limit) + 1}-{Math.min(pagination.page * pagination.limit, pagination.total)}
+            </span>{' '}
+            de{' '}
+            <span className="font-bold text-primary-600">
+              {pagination.total}
+            </span>{' '}
             items
-          </p>
+          </div>
+
+          {/* Controles de Paginación */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={pagination.page <= 1}
+              className="btn btn-ghost disabled:opacity-50"
+            >
+              Anterior
+            </button>
+
+            <span className="text-sm text-gray-600">
+              Página {pagination.page} de {pagination.totalPages}
+            </span>
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+              disabled={pagination.page >= pagination.totalPages}
+              className="btn btn-ghost disabled:opacity-50"
+            >
+              Siguiente
+            </button>
+          </div>
         </div>
       )}
 
