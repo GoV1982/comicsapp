@@ -18,7 +18,12 @@ export default function Editoriales() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({ nombre: '' });
+  const [formData, setFormData] = useState({
+    nombre: '',
+    margen_ganancia: '',
+    email_contacto: '',
+    whatsapp_contacto: ''
+  });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -42,10 +47,20 @@ export default function Editoriales() {
   const handleOpenModal = (editorial = null) => {
     if (editorial) {
       setEditingId(editorial.id);
-      setFormData({ nombre: editorial.nombre });
+      setFormData({
+        nombre: editorial.nombre,
+        margen_ganancia: editorial.margen_ganancia || '',
+        email_contacto: editorial.email_contacto || '',
+        whatsapp_contacto: editorial.whatsapp_contacto || ''
+      });
     } else {
       setEditingId(null);
-      setFormData({ nombre: '' });
+      setFormData({
+        nombre: '',
+        margen_ganancia: '',
+        email_contacto: '',
+        whatsapp_contacto: ''
+      });
     }
     setError('');
     setShowModal(true);
@@ -54,7 +69,12 @@ export default function Editoriales() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingId(null);
-    setFormData({ nombre: '' });
+    setFormData({
+      nombre: '',
+      margen_ganancia: '',
+      email_contacto: '',
+      whatsapp_contacto: ''
+    });
     setError('');
   };
 
@@ -65,9 +85,9 @@ export default function Editoriales() {
 
     try {
       if (editingId) {
-        await editorialesAPI.update(editingId, formData);
+        await editorialesAPI.updateEditorial(editingId, formData);
       } else {
-        await editorialesAPI.create(formData);
+        await editorialesAPI.createEditorial(formData);
       }
       await loadEditoriales();
       handleCloseModal();
@@ -84,7 +104,7 @@ export default function Editoriales() {
     }
 
     try {
-      await editorialesAPI.delete(id);
+      await editorialesAPI.deleteEditorial(id);
       await loadEditoriales();
     } catch (error) {
       const message = error.response?.data?.message || 'Error al eliminar la editorial';
@@ -186,6 +206,24 @@ export default function Editoriales() {
                 </div>
               </div>
 
+              {/* Info adicional */}
+              <div className="space-y-1 mb-4 text-sm text-gray-600">
+                {editorial.margen_ganancia > 0 && (
+                  <div className="flex justify-between">
+                    <span>Margen:</span>
+                    <span className="font-medium">{editorial.margen_ganancia}%</span>
+                  </div>
+                )}
+                {editorial.email_contacto && (
+                  <div className="truncate" title={editorial.email_contacto}>
+                    {editorial.email_contacto}
+                  </div>
+                )}
+                {editorial.whatsapp_contacto && (
+                  <div>{editorial.whatsapp_contacto}</div>
+                )}
+              </div>
+
               <div className="flex gap-2 pt-4 border-t border-gray-100">
                 <button
                   onClick={() => handleOpenModal(editorial)}
@@ -271,6 +309,56 @@ export default function Editoriales() {
                     className="input"
                     disabled={submitting}
                     autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Margen de Ganancia (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.margen_ganancia}
+                    onChange={(e) =>
+                      setFormData({ ...formData, margen_ganancia: e.target.value })
+                    }
+                    placeholder="Ej: 30.5"
+                    className="input"
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email de Contacto
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email_contacto}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email_contacto: e.target.value })
+                    }
+                    placeholder="contacto@editorial.com"
+                    className="input"
+                    disabled={submitting}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    WhatsApp de Contacto
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.whatsapp_contacto}
+                    onChange={(e) =>
+                      setFormData({ ...formData, whatsapp_contacto: e.target.value })
+                    }
+                    placeholder="+54 9 11 1234 5678"
+                    className="input"
+                    disabled={submitting}
                   />
                 </div>
 

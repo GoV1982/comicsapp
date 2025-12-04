@@ -12,6 +12,17 @@ try {
   authMiddleware = (req, res, next) => next();
 }
 
+// Cliente authentication middleware
+let authCliente;
+try {
+  const authClienteModule = require('../middleware/authCliente');
+  authCliente = authClienteModule.authCliente;
+  if (typeof authCliente !== 'function') throw new Error('authCliente no es una función');
+} catch (err) {
+  console.warn('authCliente no encontrado o inválido:', err.message);
+  authCliente = (req, res, next) => next();
+}
+
 // Verificar que el controlador exporte las funciones esperadas
 const requiredFns = ['getVentas', 'getVentaById', 'createVenta', 'updateVenta', 'deleteVenta'];
 for (const fn of requiredFns) {
@@ -24,8 +35,8 @@ for (const fn of requiredFns) {
 router.get('/', ventasController.getVentas);
 router.get('/:id', ventasController.getVentaById);
 
-router.post('/', authMiddleware, ventasController.createVenta);
-router.put('/:id', authMiddleware, ventasController.updateVenta);
-router.delete('/:id', authMiddleware, ventasController.deleteVenta);
+router.post('/', authCliente, ventasController.createVenta); // Clientes pueden crear pre-ordenes
+router.put('/:id', authMiddleware, ventasController.updateVenta); // Solo admin
+router.delete('/:id', authMiddleware, ventasController.deleteVenta); // Solo admin
 
 module.exports = router;

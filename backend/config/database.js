@@ -28,6 +28,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
 CREATE TABLE IF NOT EXISTS editoriales (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT NOT NULL UNIQUE,
+  margen_ganancia REAL DEFAULT 0,
+  email_contacto TEXT,
+  whatsapp_contacto TEXT,
   fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -165,6 +168,46 @@ CREATE TABLE IF NOT EXISTS backups (
   tipo TEXT NOT NULL,
   estado TEXT NOT NULL,
   mensaje TEXT
+);
+
+-- Tabla de reseñas
+CREATE TABLE IF NOT EXISTS reviews (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cliente_id INTEGER NOT NULL,
+  comic_id INTEGER NOT NULL,
+  puntuacion INTEGER NOT NULL CHECK (puntuacion >= 1 AND puntuacion <= 5),
+  comentario TEXT,
+  fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE,
+  FOREIGN KEY (comic_id) REFERENCES comics(id) ON DELETE CASCADE,
+  UNIQUE(cliente_id, comic_id)
+);
+
+-- Tabla de configuración de cliente
+CREATE TABLE IF NOT EXISTS configuracion_cliente (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cliente_id INTEGER NOT NULL UNIQUE,
+  notificaciones_email BOOLEAN DEFAULT 1,
+  notificaciones_push BOOLEAN DEFAULT 1,
+  notificaciones_whatsapp BOOLEAN DEFAULT 0,
+  notificaciones_similares BOOLEAN DEFAULT 1,
+  mostrar_favoritos BOOLEAN DEFAULT 1,
+  privacidad_perfil TEXT DEFAULT 'publico',
+  tema TEXT DEFAULT 'light',
+  idioma TEXT DEFAULT 'es',
+  fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+  fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+);
+
+-- Tabla de títulos favoritos
+CREATE TABLE IF NOT EXISTS titulos_favoritos (
+  cliente_id INTEGER NOT NULL,
+  comic_id INTEGER NOT NULL,
+  fecha_agregado DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (cliente_id, comic_id),
+  FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE,
+  FOREIGN KEY (comic_id) REFERENCES comics(id) ON DELETE CASCADE
 );
 
 -- Índices

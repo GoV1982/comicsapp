@@ -21,6 +21,8 @@ const clientesRoutes = require('./routes/clientes');
 const ventasRoutes = require('./routes/ventas');
 const googleSheetsRoutes = require('./routes/googleSheets');
 const notificacionesRoutes = require('./routes/notificaciones');
+const reviewsRoutes = require('./routes/reviews');
+const contabilidadRoutes = require('./routes/contabilidad');
 
 // Importar cron job de notificaciones
 require('./cron/notificaciones');
@@ -80,6 +82,8 @@ app.use('/api/stock', stockRoutes);
 app.use('/api/clientes', clientesRoutes);
 app.use('/api/ventas', ventasRoutes);
 app.use('/api/sheets', googleSheetsRoutes);
+app.use('/api/reviews', reviewsRoutes);
+app.use('/api/contabilidad', contabilidadRoutes);
 
 // Middleware de manejo de errores
 app.use(notFound);

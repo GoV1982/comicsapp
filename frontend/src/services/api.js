@@ -381,4 +381,55 @@ export const publicAPI = {
   },
 };
 
+export const reviewsAPI = {
+  addReview: async (reviewData) => {
+    const response = await api.post('/reviews', reviewData);
+    return response.data;
+  },
+  getReviews: async (comicId) => {
+    const response = await api.get(`/reviews/${comicId}`);
+    return response.data;
+  },
+  getSummary: async (comicId) => {
+    const response = await api.get(`/reviews/summary/${comicId}`);
+    return response.data;
+  },
+  getUserReview: async (comicId) => {
+    const response = await api.get(`/reviews/user/${comicId}`);
+    return response.data;
+  },
+  deleteReview: async (comicId) => {
+    const response = await api.delete(`/reviews/${comicId}`);
+    return response.data;
+  }
+};
+
+export const contabilidadAPI = {
+  getAllMovimientos: async (params) => {
+    const response = await api.get('/contabilidad', { params });
+    return response.data;
+  },
+  getMovimientoById: async (id) => {
+    const response = await api.get(`/contabilidad/${id}`);
+    return response.data;
+  },
+  createMovimiento: async (movimientoData) => {
+    const response = await api.post('/contabilidad', movimientoData);
+    return response.data;
+  },
+  updateMovimiento: async (id, movimientoData) => {
+    const response = await api.put(`/contabilidad/${id}`, movimientoData);
+    return response.data;
+  },
+  deleteMovimiento: async (id) => {
+    const response = await api.delete(`/contabilidad/${id}`);
+    return response.data;
+  },
+  getEstadisticas: async (params) => {
+    const response = await api.get('/contabilidad/estadisticas', { params });
+    return response.data;
+  },
+};
+
+
 

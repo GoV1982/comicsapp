@@ -95,14 +95,53 @@ export default function CarritoModal({ isOpen, onClose }) {
       }
     }
 
+    // Guardar la pre-orden en la base de datos
+    let orderId = null;
+    try {
+      const token = localStorage.getItem('cliente_token');
+      const orderPayload = {
+        cliente_id: cliente.id,
+        metodo_pago: 'whatsapp',
+        notas: 'Pre-orden iniciada vía WhatsApp',
+        estado: 'pendiente',
+        items: carrito.map(item => ({
+          comic_id: item.comic_id || item.id,
+          cantidad: item.cantidad,
+          precio_unitario: item.precio_unitario || item.precio
+        }))
+      };
+
+      const orderResponse = await fetch(`http://localhost:3002/api/ventas`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderPayload)
+      });
+
+      if (orderResponse.ok) {
+        const orderData = await orderResponse.json();
+        if (orderData.success) {
+          orderId = orderData.data.id;
+          // Opcional: Limpiar carrito después de pre-ordenar exitosa
+          // await clearCarrito(); 
+        }
+      }
+    } catch (error) {
+      console.error('Error al guardar pre-orden:', error);
+    }
+
     // Preparar detalles del pedido
     const itemsText = carrito.map(item =>
-      `• ${item.titulo} (${item.editorial_nombre})\n  Cantidad: ${item.cantidad} - Precio unit: $${item.precio_unitario.toFixed(0)} - Subtotal: $${(item.precio_unitario * item.cantidad).toFixed(2)}`
+      `• ${item.titulo} (${item.editorial_nombre})\n  Cantidad: ${item.cantidad} - Precio unit: $${(item.precio || item.precio_unitario).toFixed(0)} - Subtotal: $${((item.precio || item.precio_unitario) * item.cantidad).toFixed(2)}`
     ).join('\n\n');
 
     const clienteInfo = clienteCompleto ? `\n\n📋 *Datos del Cliente:*\nNombre: ${clienteCompleto.nombre}${clienteCompleto.whatsapp ? `\nWhatsApp: ${clienteCompleto.whatsapp}` : ''}${clienteCompleto.telefono ? `\nTeléfono: ${clienteCompleto.telefono}` : ''}${clienteCompleto.direccion ? `\nDirección: ${clienteCompleto.direccion}` : ''}` : '';
 
-    const mensaje = `🛒 *NUEVA PRE-ORDEN*\n\n📚 *Detalle del Pedido:*\n\n${itemsText}\n\n💰 *TOTAL: $${total.toFixed(2)}*${clienteInfo}\n\n⏰ Por favor, confirmen disponibilidad y coordinemos el pago y entrega.`;
+    const orderReference = orderId ? `\n\n🆔 *Orden #${orderId}*` : '';
+
+    const mensaje = `🛒 *NUEVA PRE-ORDEN*${orderReference}\n\n📚 *Detalle del Pedido:*\n\n${itemsText}\n\n💰 *TOTAL: $${total.toFixed(2)}*${clienteInfo}\n\n⏰ Por favor, confirmen disponibilidad y coordinemos el pago y entrega.`;
 
     // Crear URL de WhatsApp
     const whatsappUrl = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;

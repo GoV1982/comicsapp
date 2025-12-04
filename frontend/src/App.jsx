@@ -13,6 +13,7 @@ import Comics from './pages/admin/Comics';
 import Stock from './pages/admin/Stock';
 import Clientes from './pages/admin/Clientes';
 import Ventas from './pages/admin/Ventas';
+import Contabilidad from './pages/admin/Contabilidad';
 import Configuracion from './pages/admin/Configuracion';
 
 // Página pública (la crearemos después)
@@ -32,47 +33,48 @@ function App() {
       <AuthProviderClientes>
         <CarritoProvider>
           <Router>
-          <Routes>
-            {/* Ruta pública - Catálogo */}
-            <Route path="/" element={<CatalogoPublico />} />
-            <Route path="/catalogo" element={<CatalogoPublico />} />
-            <Route path="/catalogo-completo" element={<CatalogoCompleto />} />
-            <Route path="image-checker" element={<ImageChecker />} />
+            <Routes>
+              {/* Ruta pública - Catálogo */}
+              <Route path="/" element={<CatalogoPublico />} />
+              <Route path="/catalogo" element={<CatalogoPublico />} />
+              <Route path="/catalogo-completo" element={<CatalogoCompleto />} />
+              <Route path="image-checker" element={<ImageChecker />} />
 
-            {/* Rutas de autenticación de clientes */}
-            <Route path="/register" element={<Register />} />
-            <Route path="/login-cliente" element={<LoginCliente />} />
-            <Route path="/verify-email/:token" element={<VerifyEmail />} />
+              {/* Rutas de autenticación de clientes */}
+              <Route path="/register" element={<Register />} />
+              <Route path="/login-cliente" element={<LoginCliente />} />
+              <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
-            {/* Rutas protegidas de clientes */}
-            <Route path="/perfil" element={<PerfilCliente />} />
+              {/* Rutas protegidas de clientes */}
+              <Route path="/perfil" element={<PerfilCliente />} />
 
-            {/* Login Admin */}
-            <Route path="/login" element={<Login />} />
+              {/* Login Admin */}
+              <Route path="/login" element={<Login />} />
 
-            {/* Rutas protegidas - Admin */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Dashboard />} />
-              <Route path="editoriales" element={<Editoriales />} />
-              <Route path="comics" element={<Comics />} />
-              <Route path="stock" element={<Stock />} />
-              <Route path="clientes" element={<Clientes />} />
-              <Route path="ventas" element={<Ventas />} />
-              <Route path="configuracion" element={<Configuracion />} />
-            </Route>
+              {/* Rutas protegidas - Admin */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="editoriales" element={<Editoriales />} />
+                <Route path="comics" element={<Comics />} />
+                <Route path="stock" element={<Stock />} />
+                <Route path="clientes" element={<Clientes />} />
+                <Route path="ventas" element={<Ventas />} />
+                <Route path="contabilidad" element={<Contabilidad />} />
+                <Route path="configuracion" element={<Configuracion />} />
+              </Route>
 
-            {/* Ruta por defecto */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </CarritoProvider>
+              {/* Ruta por defecto */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </CarritoProvider>
       </AuthProviderClientes>
     </AuthProvider>
   );

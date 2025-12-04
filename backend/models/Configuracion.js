@@ -1,4 +1,4 @@
-const { getOne, runQuery } = require('../config/database');
+const { getOne, runQuery, getAll } = require('../config/database');
 
 class Configuracion {
   // Configuración por cliente (favoritos, etc.)
@@ -11,13 +11,17 @@ class Configuracion {
           cliente_id: clienteId,
           notificaciones_email: true,
           notificaciones_push: true,
+          notificaciones_whatsapp: false,
+          notificaciones_similares: true,
+          mostrar_favoritos: true,
+          privacidad_perfil: 'publico',
           tema: 'light',
           idioma: 'es'
         };
 
         await runQuery(
-          'INSERT INTO configuracion_cliente (cliente_id, notificaciones_email, notificaciones_push, tema, idioma) VALUES (?, ?, ?, ?, ?)',
-          [clienteId, true, true, 'light', 'es']
+          'INSERT INTO configuracion_cliente (cliente_id, notificaciones_email, notificaciones_push, notificaciones_whatsapp, notificaciones_similares, mostrar_favoritos, privacidad_perfil, tema, idioma) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [clienteId, true, true, false, true, true, 'publico', 'light', 'es']
         );
 
         return defaultConfig;
@@ -33,7 +37,10 @@ class Configuracion {
   static async updateConfiguracion(clienteId, updates) {
     try {
       const fields = Object.keys(updates);
-      const values = Object.values(updates);
+      const values = Object.values(updates).map(val => {
+        if (typeof val === 'boolean') return val ? 1 : 0;
+        return val;
+      });
 
       if (fields.length === 0) throw new Error('No hay campos para actualizar');
 
@@ -79,7 +86,7 @@ class Configuracion {
 
   static async getTitulosFavoritos(clienteId) {
     try {
-      return await runQuery(
+      return await getAll(
         'SELECT c.* FROM comics c INNER JOIN titulos_favoritos tf ON c.id = tf.comic_id WHERE tf.cliente_id = ? ORDER BY c.titulo',
         [clienteId]
       );
@@ -184,7 +191,7 @@ class Configuracion {
       throw error;
     }
 
-      return module.exports.getConfiguracionGlobal();
+    return module.exports.getConfiguracionGlobal();
   }
 }
 

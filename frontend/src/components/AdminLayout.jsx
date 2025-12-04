@@ -14,6 +14,7 @@ import {
   Users,
   DollarSign,
   Settings,
+  Wallet,
 } from 'lucide-react';
 
 export default function AdminLayout() {
@@ -23,14 +24,15 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const menuItems = [
-  { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { path: '/admin/editoriales', icon: Building2, label: 'Editoriales' },
-  { path: '/admin/comics', icon: BookOpen, label: 'Comics' },
-  { path: '/admin/stock', icon: Package, label: 'Stock' },
-  { path: '/admin/clientes', icon: Users, label: 'Clientes' },
-  { path: '/admin/ventas', icon: DollarSign, label: 'Ventas' },
-  { path: '/admin/configuracion', icon: Settings, label: 'Configuración' },
-];
+    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
+    { path: '/admin/editoriales', icon: Building2, label: 'Editoriales' },
+    { path: '/admin/comics', icon: BookOpen, label: 'Comics' },
+    { path: '/admin/stock', icon: Package, label: 'Stock' },
+    { path: '/admin/clientes', icon: Users, label: 'Clientes' },
+    { path: '/admin/ventas', icon: DollarSign, label: 'Ventas' },
+    { path: '/admin/contabilidad', icon: Wallet, label: 'Contabilidad' },
+    { path: '/admin/configuracion', icon: Settings, label: 'Configuración' },
+  ];
 
   const isActive = (path, exact = false) => {
     if (exact) {
@@ -73,11 +75,10 @@ export default function AdminLayout() {
                   key={item.path}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${
-                    active
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${active
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
@@ -122,9 +123,8 @@ export default function AdminLayout() {
 
       {/* Sidebar Mobile */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:hidden ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Header con botón cerrar */}
@@ -157,11 +157,10 @@ export default function AdminLayout() {
                   key={item.path}
                   to={item.path}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${
-                    active
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${active
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>

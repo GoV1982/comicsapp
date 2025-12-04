@@ -19,10 +19,13 @@ const getComics = async (req, res) => {
 
         // Construir la consulta base
         let query = `
-            SELECT c.*, e.nombre as editorial_nombre, s.cantidad_disponible as stock
+            SELECT c.*, e.nombre as editorial_nombre, s.cantidad_disponible as stock,
+            COALESCE(AVG(r.puntuacion), 0) as promedio_puntuacion,
+            COUNT(r.id) as total_reviews
             FROM comics c
             LEFT JOIN editoriales e ON c.editorial_id = e.id
             LEFT JOIN stock s ON c.id = s.comic_id
+            LEFT JOIN reviews r ON c.id = r.comic_id
             WHERE 1=1
         `;
 
@@ -83,7 +86,7 @@ const getComics = async (req, res) => {
         }
 
         // Agregar ordenamiento y paginación
-        query += ` ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
+        query += ` GROUP BY c.id ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
         params.push(limit, offset);
 
         const comics = await getAll(query, params);

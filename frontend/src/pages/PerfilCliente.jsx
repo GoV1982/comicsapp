@@ -108,11 +108,11 @@ export default function PerfilCliente() {
       if (response.success) {
         const data = response.data || {};
         setConfigData({
-          notificaciones_email: data.notificaciones === 1,
-          notificaciones_whatsapp: false, // No soportado en backend aún
-          notificaciones_similares: data.notificaciones_similares === 1,
-          mostrar_favoritos: true, // No soportado en backend aún
-          privacidad_perfil: 'publico' // No soportado en backend aún
+          notificaciones_email: data.notificaciones_email === 1 || data.notificaciones_email === true,
+          notificaciones_whatsapp: data.notificaciones_whatsapp === 1 || data.notificaciones_whatsapp === true,
+          notificaciones_similares: data.notificaciones_similares === 1 || data.notificaciones_similares === true,
+          mostrar_favoritos: data.mostrar_favoritos === 1 || data.mostrar_favoritos === true,
+          privacidad_perfil: data.privacidad_perfil || 'publico'
         });
       }
     } catch (error) {
@@ -611,8 +611,8 @@ export default function PerfilCliente() {
                         </div>
 
                         <div className="space-y-2">
-                          {compra.items?.map((item) => (
-                            <div key={item.id} className="flex justify-between text-sm">
+                          {compra.items?.map((item, index) => (
+                            <div key={item.id || `${compra.id}-${index}`} className="flex justify-between text-sm">
                               <span>{item.titulo} (x{item.cantidad})</span>
                               <span>${(item.precio * item.cantidad).toFixed(2)}</span>
                             </div>

@@ -21,8 +21,9 @@ import {
   Menu,
   UserPlus
 } from 'lucide-react';
-import { publicAPI, configuracionAPI } from '../services/api';
+import { publicAPI, configuracionAPI, reviewsAPI } from '../services/api';
 import LazyImage from '../components/LazyImage';
+import StarRating from '../components/StarRating';
 import CarritoModal from '../components/CarritoModal';
 import { useCarrito } from '../contexts/CarritoContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -48,6 +49,12 @@ export default function CatalogoPublico() {
   const [favorites, setFavorites] = useState([]);
   const [loadingFavorites, setLoadingFavorites] = useState(false);
   const [configuracion, setConfiguracion] = useState(null);
+
+  // Reviews State
+  const [reviews, setReviews] = useState([]);
+  const [userReview, setUserReview] = useState(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ puntuacion: 0, comentario: '' });
 
   useEffect(() => {
     loadData();
@@ -124,9 +131,66 @@ export default function CatalogoPublico() {
     }
   };
 
+  const loadReviews = async (comicId) => {
+    try {
+      setLoadingReviews(true);
+      const [reviewsRes, userReviewRes] = await Promise.all([
+        reviewsAPI.getReviews(comicId),
+        isClienteAuthenticated ? reviewsAPI.getUserReview(comicId) : Promise.resolve({ data: null })
+      ]);
+
+      setReviews(reviewsRes.data || []);
+      setUserReview(userReviewRes.data || null);
+
+      if (userReviewRes.data) {
+        setReviewForm({
+          puntuacion: userReviewRes.data.puntuacion,
+          comentario: userReviewRes.data.comentario || ''
+        });
+      } else {
+        setReviewForm({ puntuacion: 0, comentario: '' });
+      }
+    } catch (error) {
+      console.error('Error al cargar reseñas:', error);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (!isClienteAuthenticated) return navigate('/login-cliente');
+
+    try {
+      await reviewsAPI.addReview({
+        comicId: selectedComic.id,
+        ...reviewForm
+      });
+
+      // Recargar reseñas y datos del comic (para actualizar promedio)
+      loadReviews(selectedComic.id);
+      loadData(); // Para actualizar el promedio en la lista principal
+    } catch (error) {
+      console.error('Error al enviar reseña:', error);
+    }
+  };
+
+  const handleReviewDelete = async () => {
+    if (!window.confirm('¿Estás seguro de eliminar tu reseña?')) return;
+
+    try {
+      await reviewsAPI.deleteReview(selectedComic.id);
+      loadReviews(selectedComic.id);
+      loadData();
+    } catch (error) {
+      console.error('Error al eliminar reseña:', error);
+    }
+  };
+
   const handleViewDetails = (comic) => {
     setSelectedComic(comic);
     setShowModal(true);
+    loadReviews(comic.id);
   };
 
   const handleCloseModal = () => {
@@ -364,6 +428,15 @@ export default function CatalogoPublico() {
                     {comic.titulo}
                   </h3>
 
+                  <div className="mb-3">
+                    <StarRating
+                      rating={comic.promedio_puntuacion}
+                      count={comic.total_reviews}
+                      showCount={true}
+                      size="sm"
+                    />
+                  </div>
+
                   {/* Info */}
                   <div className="space-y-2 mb-4">
                     <p className="text-sm text-gray-600">
@@ -503,6 +576,83 @@ export default function CatalogoPublico() {
                           <ShoppingCart className="w-5 h-5" />
                           <span>{addingToCart === selectedComic.id ? 'Agregando...' : 'Agregar al Carrito'}</span>
                         </button>
+                      </div>
+                    </div>
+
+                    {/* Sección de Reseñas */}
+                    <div className="mt-8 pt-6 border-t border-gray-200">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">Reseñas y Opiniones</h3>
+
+                      {/* Formulario de Reseña */}
+                      {isClienteAuthenticated ? (
+                        <form onSubmit={handleReviewSubmit} className="mb-6 bg-gray-50 p-4 rounded-lg">
+                          <div className="mb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Tu Puntuación</label>
+                            <StarRating
+                              rating={reviewForm.puntuacion}
+                              interactive={true}
+                              onChange={(val) => setReviewForm(prev => ({ ...prev, puntuacion: val }))}
+                              size="lg"
+                            />
+                          </div>
+                          <div className="mb-3">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Tu Opinión</label>
+                            <textarea
+                              value={reviewForm.comentario}
+                              onChange={(e) => setReviewForm(prev => ({ ...prev, comentario: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                              rows="2"
+                              placeholder="¿Qué te pareció este cómic?"
+                            />
+                          </div>
+                          <div className="flex justify-between items-center">
+                            {userReview && (
+                              <button
+                                type="button"
+                                onClick={handleReviewDelete}
+                                className="text-red-600 text-sm hover:underline"
+                              >
+                                Eliminar mi reseña
+                              </button>
+                            )}
+                            <button
+                              type="submit"
+                              disabled={reviewForm.puntuacion === 0}
+                              className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50"
+                            >
+                              {userReview ? 'Actualizar' : 'Publicar'}
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="mb-6 p-4 bg-gray-50 rounded-lg text-center">
+                          <p className="text-sm text-gray-600 mb-2">Inicia sesión para dejar tu opinión</p>
+                          <Link to="/login-cliente" className="text-primary-600 font-medium hover:underline">
+                            Iniciar Sesión
+                          </Link>
+                        </div>
+                      )}
+
+                      {/* Lista de Reseñas */}
+                      <div className="space-y-4 max-h-60 overflow-y-auto">
+                        {loadingReviews ? (
+                          <div className="text-center py-4"><Loader2 className="w-6 h-6 animate-spin mx-auto text-primary-600" /></div>
+                        ) : reviews.length === 0 ? (
+                          <p className="text-gray-500 text-sm text-center italic">Sé el primero en opinar sobre este cómic.</p>
+                        ) : (
+                          reviews.map((review) => (
+                            <div key={review.id} className="border-b border-gray-100 pb-3 last:border-0">
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="font-medium text-gray-900 text-sm">{review.cliente_nombre}</span>
+                                <span className="text-xs text-gray-500">{new Date(review.fecha_creacion).toLocaleDateString()}</span>
+                              </div>
+                              <StarRating rating={review.puntuacion} size="sm" />
+                              {review.comentario && (
+                                <p className="text-gray-600 text-sm mt-1">{review.comentario}</p>
+                              )}
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>

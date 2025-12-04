@@ -16,9 +16,9 @@ const getAllEditoriales = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener editoriales:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error en el servidor',
-      message: error.message 
+      message: error.message
     });
   }
 };
@@ -34,7 +34,7 @@ const getEditorialById = async (req, res) => {
     );
 
     if (!editorial) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Editorial no encontrada',
         message: `No existe una editorial con ID ${id}`
       });
@@ -47,9 +47,9 @@ const getEditorialById = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener editorial:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error en el servidor',
-      message: error.message 
+      message: error.message
     });
   }
 };
@@ -57,11 +57,11 @@ const getEditorialById = async (req, res) => {
 // Crear nueva editorial
 const createEditorial = async (req, res) => {
   try {
-    const { nombre } = req.body;
+    const { nombre, margen_ganancia, email_contacto, whatsapp_contacto } = req.body;
 
     // Validar datos
     if (!nombre || nombre.trim() === '') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Datos incompletos',
         message: 'El nombre de la editorial es requerido'
       });
@@ -74,7 +74,7 @@ const createEditorial = async (req, res) => {
     );
 
     if (exists) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Editorial duplicada',
         message: 'Ya existe una editorial con ese nombre'
       });
@@ -82,8 +82,8 @@ const createEditorial = async (req, res) => {
 
     // Crear editorial
     const result = await runQuery(
-      'INSERT INTO editoriales (nombre) VALUES (?)',
-      [nombre.trim()]
+      'INSERT INTO editoriales (nombre, margen_ganancia, email_contacto, whatsapp_contacto) VALUES (?, ?, ?, ?)',
+      [nombre.trim(), margen_ganancia || 0, email_contacto || null, whatsapp_contacto || null]
     );
 
     res.status(201).json({
@@ -91,15 +91,18 @@ const createEditorial = async (req, res) => {
       message: 'Editorial creada correctamente',
       data: {
         id: result.id,
-        nombre: nombre.trim()
+        nombre: nombre.trim(),
+        margen_ganancia: margen_ganancia || 0,
+        email_contacto: email_contacto || null,
+        whatsapp_contacto: whatsapp_contacto || null
       }
     });
 
   } catch (error) {
     console.error('Error al crear editorial:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error en el servidor',
-      message: error.message 
+      message: error.message
     });
   }
 };
@@ -108,11 +111,11 @@ const createEditorial = async (req, res) => {
 const updateEditorial = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre } = req.body;
+    const { nombre, margen_ganancia, email_contacto, whatsapp_contacto } = req.body;
 
     // Validar datos
     if (!nombre || nombre.trim() === '') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Datos incompletos',
         message: 'El nombre de la editorial es requerido'
       });
@@ -125,7 +128,7 @@ const updateEditorial = async (req, res) => {
     );
 
     if (!editorial) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Editorial no encontrada',
         message: `No existe una editorial con ID ${id}`
       });
@@ -138,7 +141,7 @@ const updateEditorial = async (req, res) => {
     );
 
     if (duplicate) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Nombre duplicado',
         message: 'Ya existe otra editorial con ese nombre'
       });
@@ -146,8 +149,8 @@ const updateEditorial = async (req, res) => {
 
     // Actualizar editorial
     await runQuery(
-      'UPDATE editoriales SET nombre = ? WHERE id = ?',
-      [nombre.trim(), id]
+      'UPDATE editoriales SET nombre = ?, margen_ganancia = ?, email_contacto = ?, whatsapp_contacto = ? WHERE id = ?',
+      [nombre.trim(), margen_ganancia || 0, email_contacto || null, whatsapp_contacto || null, id]
     );
 
     res.json({
@@ -155,15 +158,18 @@ const updateEditorial = async (req, res) => {
       message: 'Editorial actualizada correctamente',
       data: {
         id: parseInt(id),
-        nombre: nombre.trim()
+        nombre: nombre.trim(),
+        margen_ganancia: margen_ganancia || 0,
+        email_contacto: email_contacto || null,
+        whatsapp_contacto: whatsapp_contacto || null
       }
     });
 
   } catch (error) {
     console.error('Error al actualizar editorial:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error en el servidor',
-      message: error.message 
+      message: error.message
     });
   }
 };
@@ -180,7 +186,7 @@ const deleteEditorial = async (req, res) => {
     );
 
     if (!editorial) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Editorial no encontrada',
         message: `No existe una editorial con ID ${id}`
       });
@@ -193,7 +199,7 @@ const deleteEditorial = async (req, res) => {
     );
 
     if (comicsCount.count > 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Editorial con comics asociados',
         message: `No se puede eliminar la editorial "${editorial.nombre}" porque tiene ${comicsCount.count} comic(s) asociado(s)`,
         comicsCount: comicsCount.count
@@ -213,9 +219,9 @@ const deleteEditorial = async (req, res) => {
 
   } catch (error) {
     console.error('Error al eliminar editorial:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error en el servidor',
-      message: error.message 
+      message: error.message
     });
   }
 };
