@@ -146,14 +146,63 @@ La página de contabilidad incluye:
 
 ## ✨ Próximos Pasos (Opcional - Mejoras Futuras)
 
-1. **Reportes avanzados**:
-   - Exportar a PDF
-   - Comparativas por período
-   - Proyecciones
+### ✅ **Reportes Avanzados - IMPLEMENTADO**
 
-2. **Más gráficos**:
-   - Pie chart de distribución
-   - Gráfico de flujo de caja
+1. **✅ Exportar a PDF**: 
+   - Genera reportes profesionales con `jspdf` y `jspdf-autotable`
+   - Incluye resumen del período y tabla completa de movimientos
+   - Botón "Exportar PDF" disponible en la interfaz
+   
+2. **✅ Comparativas por Período**:
+   - Tarjeta "Comparativa Mensual" que muestra el crecimiento/decrecimiento porcentual
+   - Compara mes actual vs mes anterior
+   - Indicadores visuales (verde para crecimiento, rojo para decrecimiento)
+   
+3. **✅ Proyecciones**:
+   - Tarjeta "Proyección de Cierre" que estima ingresos totales al final del mes
+   - Cálculo basado en: (Total actual / días transcurridos) × días totales del mes
+   - Solo proyecta para el mes en curso
+   - Badge "Estimado" para claridad
+
+**Script de datos de prueba:** `backend/scripts/seed_analisis.js`
+
+### 🔮 Mejoras Futuras Adicionales:
+
+### ✅ **Más Gráficos - IMPLEMENTADO**
+
+1. **✅ Pie Chart de Distribución**:
+   - Muestra la distribución porcentual de egresos por categoría
+   - Con tooltips que muestran el monto y porcentaje
+   - Leyenda posicionada a la derecha
+
+2. **✅ Gráfico de Flujo de Caja**:
+   - Muestra el balance (ingresos - egresos) por mes
+   - Barras en verde para balance positivo, rojo para negativo
+   - Escala con formato de moneda
+
+### ✅ **Multimoneda - IMPLEMENTADO**
+
+1. **✅ Soporte para Múltiples Monedas**:
+   - ARS (Peso Argentino) - Moneda base
+   - USD (Dólar estadounidense)
+   - EUR (Euro)
+   - BRL (Real brasileño)
+   
+2. **✅ Tasas de Cambio**:
+   - Campo para ingresar tasa de cambio manual
+   - Auto-sugerencia de tasas al seleccionar moneda
+   - Conversión automática a ARS (moneda base)
+   - Mostrar equivalente en ARS en tiempo real
+
+3. **✅ Interfaz**:
+   - Selector de moneda con banderas emoji
+   - Campo de tasa de cambio (deshabilitado para ARS)
+   - Indicador de moneda en la tabla de movimientos
+   - Cálculo automático del equivalente en ARS
+
+**Script de migración:** `backend/scripts/add_multimoneda.js`
+
+### 🔮 Mejoras Futuras Restantes:
 
 3. **Presupuestos**:
    - Definir presupuesto mensual por categoría

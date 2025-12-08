@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCarrito } from '../contexts/CarritoContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 import {
   ShoppingCart,
   X,
@@ -17,6 +18,7 @@ import { Link } from 'react-router-dom';
 export default function CarritoModal({ isOpen, onClose }) {
   const { carrito, total, loading, updateCantidad, removeFromCarrito, clearCarrito } = useCarrito();
   const { cliente } = useAuth();
+  const { formatearPrecio, convertirPrecio, monedaSeleccionada, getTasaActual } = useCurrency();
   const isAuthenticated = !!cliente;
   const [updatingItem, setUpdatingItem] = useState(null);
 
@@ -132,16 +134,35 @@ export default function CarritoModal({ isOpen, onClose }) {
       console.error('Error al guardar pre-orden:', error);
     }
 
-    // Preparar detalles del pedido
-    const itemsText = carrito.map(item =>
-      `• ${item.titulo} (${item.editorial_nombre})\n  Cantidad: ${item.cantidad} - Precio unit: $${(item.precio || item.precio_unitario).toFixed(0)} - Subtotal: $${((item.precio || item.precio_unitario) * item.cantidad).toFixed(2)}`
-    ).join('\n\n');
+    // Preparar detalles del pedido con moneda seleccionada
+    const tasa = getTasaActual();
+    const simbolo = tasa?.simbolo || '$';
+    const moneda = monedaSeleccionada;
+
+    const itemsText = carrito.map(item => {
+      const precioUnitarioARS = item.precio || item.precio_unitario;
+      const subtotalARS = precioUnitarioARS * item.cantidad;
+
+      const precioUnitarioDisplay = moneda === 'ARS'
+        ? `$${precioUnitarioARS.toFixed(0)}`
+        : `${simbolo} ${convertirPrecio(precioUnitarioARS).toFixed(2)}`;
+
+      const subtotalDisplay = moneda === 'ARS'
+        ? `$${subtotalARS.toFixed(2)}`
+        : `${simbolo} ${convertirPrecio(subtotalARS).toFixed(2)}`;
+
+      return `• ${item.titulo} (${item.editorial_nombre})\n  Cantidad: ${item.cantidad} - Precio unit: ${precioUnitarioDisplay} - Subtotal: ${subtotalDisplay}`;
+    }).join('\n\n');
 
     const clienteInfo = clienteCompleto ? `\n\n📋 *Datos del Cliente:*\nNombre: ${clienteCompleto.nombre}${clienteCompleto.whatsapp ? `\nWhatsApp: ${clienteCompleto.whatsapp}` : ''}${clienteCompleto.telefono ? `\nTeléfono: ${clienteCompleto.telefono}` : ''}${clienteCompleto.direccion ? `\nDirección: ${clienteCompleto.direccion}` : ''}` : '';
 
     const orderReference = orderId ? `\n\n🆔 *Orden #${orderId}*` : '';
 
-    const mensaje = `🛒 *NUEVA PRE-ORDEN*${orderReference}\n\n📚 *Detalle del Pedido:*\n\n${itemsText}\n\n💰 *TOTAL: $${total.toFixed(2)}*${clienteInfo}\n\n⏰ Por favor, confirmen disponibilidad y coordinemos el pago y entrega.`;
+    const totalDisplay = moneda === 'ARS'
+      ? `$${total.toFixed(2)}`
+      : `${simbolo} ${convertirPrecio(total).toFixed(2)} (${moneda})`;
+
+    const mensaje = `🛒 *NUEVA PRE-ORDEN*${orderReference}\n\n📚 *Detalle del Pedido:*\n\n${itemsText}\n\n💰 *TOTAL: ${totalDisplay}*${clienteInfo}\n\n⏰ Por favor, confirmen disponibilidad y coordinemos el pago y entrega.`;
 
     // Crear URL de WhatsApp
     const whatsappUrl = `https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(mensaje)}`;
@@ -275,7 +296,7 @@ export default function CarritoModal({ isOpen, onClose }) {
                       {/* Precio */}
                       <div className="mt-2 text-right">
                         <span className="text-sm font-medium text-gray-900">
-                          ${(item.precio * item.cantidad).toFixed(2)}
+                          {formatearPrecio(item.precio * item.cantidad)}
                         </span>
                       </div>
                     </div>
@@ -292,7 +313,7 @@ export default function CarritoModal({ isOpen, onClose }) {
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold text-gray-900">Total:</span>
                 <span className="text-xl font-bold text-primary-600">
-                  ${total.toFixed(2)}
+                  {formatearPrecio(total)}
                 </span>
               </div>
 

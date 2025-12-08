@@ -108,6 +108,8 @@ const createMovimiento = async (req, res) => {
             proveedor,
             comprobante,
             editorial_id,
+            moneda,
+            tasa_cambio,
         } = req.body;
 
         // Validar datos
@@ -134,8 +136,8 @@ const createMovimiento = async (req, res) => {
 
         const result = db.prepare(
             `INSERT INTO movimientos_contables 
-      (tipo, monto, fecha, categoria, descripcion, metodo_pago, proveedor, comprobante, editorial_id) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (tipo, monto, fecha, categoria, descripcion, metodo_pago, proveedor, comprobante, editorial_id, moneda, tasa_cambio) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).run(
             tipo,
             monto,
@@ -145,7 +147,9 @@ const createMovimiento = async (req, res) => {
             metodo_pago || null,
             proveedor || null,
             comprobante || null,
-            editorial_id || null
+            editorial_id || null,
+            moneda || 'ARS',
+            tasa_cambio || 1.0
         );
 
         res.status(201).json({

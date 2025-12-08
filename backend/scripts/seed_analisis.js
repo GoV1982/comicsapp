@@ -1,4 +1,5 @@
-const db = require('better-sqlite3')('../database.db');
+const path = require('path');
+const db = require('better-sqlite3')(path.join(__dirname, '..', 'database.db'));
 
 console.log('🌱 Sembrando datos para Análisis Avanzado...');
 

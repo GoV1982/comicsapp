@@ -25,13 +25,16 @@ import { publicAPI, configuracionAPI, reviewsAPI } from '../services/api';
 import LazyImage from '../components/LazyImage';
 import StarRating from '../components/StarRating';
 import CarritoModal from '../components/CarritoModal';
+import CurrencySelector from '../components/CurrencySelector';
 import { useCarrito } from '../contexts/CarritoContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function CatalogoPublico() {
   const navigate = useNavigate();
   const { isClienteAuthenticated, cliente, logoutCliente } = useAuth();
   const { cantidadItems, addToCarrito } = useCarrito();
+  const { formatearPrecio } = useCurrency();
 
   const [comics, setComics] = useState([]);
   const [editoriales, setEditoriales] = useState([]);
@@ -255,6 +258,7 @@ export default function CatalogoPublico() {
 
             {/* Botones */}
             <div className="flex items-center gap-3">
+              <CurrencySelector />
               <Link
                 to="/catalogo-completo"
                 className="flex items-center gap-2 px-4 py-2 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors"
@@ -447,7 +451,7 @@ export default function CatalogoPublico() {
                   {/* Precio */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <span className="text-2xl font-bold text-primary-600">
-                      ${comic.precio}
+                      {formatearPrecio(comic.precio)}
                     </span>
                     <button
                       onClick={() => handleViewDetails(comic)}
@@ -557,7 +561,7 @@ export default function CatalogoPublico() {
                       <div className="mb-4">
                         <p className="text-sm text-gray-600 mb-1">Precio</p>
                         <p className="text-3xl font-bold text-primary-600">
-                          ${selectedComic.precio}
+                          {formatearPrecio(selectedComic.precio)}
                         </p>
                       </div>
                       <div className="flex gap-3">

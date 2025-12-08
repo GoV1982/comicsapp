@@ -431,5 +431,20 @@ export const contabilidadAPI = {
   },
 };
 
+export const tasasCambioAPI = {
+  getAllTasas: async () => {
+    const response = await api.get('/tasas-cambio');
+    return response.data;
+  },
+  getTasaByMoneda: async (moneda) => {
+    const response = await api.get(`/tasas-cambio/${moneda}`);
+    return response.data;
+  },
+  updateTasa: async (moneda, tasa) => {
+    const response = await api.put(`/tasas-cambio/${moneda}`, { tasa });
+    return response.data;
+  },
+};
+
 
 

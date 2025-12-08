@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Plus, DollarSign, TrendingUp, TrendingDown, Calendar, Filter, Download, Pencil, Trash2, X, FileText, BarChart2 } from 'lucide-react';
-import { contabilidadAPI, editorialesAPI } from '../../services/api';
-import { Line, Bar } from 'react-chartjs-2';
+import { Loader2, Plus, DollarSign, TrendingUp, TrendingDown, Calendar, Filter, Download, Pencil, Trash2, X, FileText, BarChart2, RefreshCw } from 'lucide-react';
+import { contabilidadAPI, editorialesAPI, tasasCambioAPI } from '../../services/api';
+import { Line, Bar, Pie } from 'react-chartjs-2';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
@@ -11,6 +11,7 @@ import {
     PointElement,
     LineElement,
     BarElement,
+    ArcElement,
     Title,
     Tooltip,
     Legend,
@@ -23,6 +24,7 @@ ChartJS.register(
     PointElement,
     LineElement,
     BarElement,
+    ArcElement,
     Title,
     Tooltip,
     Legend,
@@ -38,6 +40,8 @@ export default function Contabilidad() {
     const [editingId, setEditingId] = useState(null);
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [tasas, setTasas] = useState([]);
+    const [editandoTasa, setEditandoTasa] = useState(null);
 
     // Filtros
     const [filtros, setFiltros] = useState({
@@ -58,6 +62,8 @@ export default function Contabilidad() {
         proveedor: '',
         comprobante: '',
         editorial_id: '',
+        moneda: 'ARS',
+        tasa_cambio: 1.0,
     });
 
     // Categorías
@@ -73,6 +79,7 @@ export default function Contabilidad() {
     useEffect(() => {
         loadData();
         loadEditoriales();
+        loadTasas();
     }, [filtros]);
 
     const loadData = async () => {
@@ -102,6 +109,26 @@ export default function Contabilidad() {
         }
     };
 
+    const loadTasas = async () => {
+        try {
+            const res = await tasasCambioAPI.getAllTasas();
+            setTasas(res.data || []);
+        } catch (error) {
+            console.error('Error al cargar tasas:', error);
+        }
+    };
+
+    const handleUpdateTasa = async (moneda, nuevaTasa) => {
+        try {
+            await tasasCambioAPI.updateTasa(moneda, nuevaTasa);
+            await loadTasas();
+            setEditandoTasa(null);
+        } catch (error) {
+            console.error('Error al actualizar tasa:', error);
+            alert('Error al actualizar la tasa');
+        }
+    };
+
     const handleOpenModal = (movimiento = null) => {
         setError('');
         if (movimiento) {
@@ -120,6 +147,8 @@ export default function Contabilidad() {
                 proveedor: movimiento.proveedor || '',
                 comprobante: movimiento.comprobante || '',
                 editorial_id: movimiento.editorial_id || '',
+                moneda: movimiento.moneda || 'ARS',
+                tasa_cambio: movimiento.tasa_cambio || 1.0,
             });
         } else {
             setFormData({
@@ -132,6 +161,8 @@ export default function Contabilidad() {
                 proveedor: '',
                 comprobante: '',
                 editorial_id: '',
+                moneda: 'ARS',
+                tasa_cambio: 1.0,
             });
             setEditingId(null);
         }
@@ -322,6 +353,46 @@ export default function Contabilidad() {
         ],
     } : null;
 
+    // Pie Chart - Distribución de Egresos
+    const chartDataPie = estadisticas?.egresos_por_categoria ? {
+        labels: estadisticas.egresos_por_categoria.map(e => e.categoria),
+        datasets: [
+            {
+                label: 'Distribución',
+                data: estadisticas.egresos_por_categoria.map(e => e.total),
+                backgroundColor: [
+                    'rgba(239, 68, 68, 0.8)',
+                    'rgba(245, 158, 11, 0.8)',
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(168, 85, 247, 0.8)',
+                    'rgba(236, 72, 153, 0.8)',
+                    'rgba(34, 197, 94, 0.8)',
+                ],
+                borderWidth: 2,
+                borderColor: '#fff',
+            },
+        ],
+    } : null;
+
+    // Flujo de Caja (Balance por mes)
+    const chartDataFlujoCaja = estadisticas?.evolucion_mensual ? {
+        labels: estadisticas.evolucion_mensual.map(e => e.mes).reverse(),
+        datasets: [
+            {
+                label: 'Flujo de Caja (Balance)',
+                data: estadisticas.evolucion_mensual.map(e => e.balance).reverse(),
+                backgroundColor: estadisticas.evolucion_mensual.map(e =>
+                    e.balance >= 0 ? 'rgba(34, 197, 94, 0.7)' : 'rgba(239, 68, 68, 0.7)'
+                ).reverse(),
+                borderColor: estadisticas.evolucion_mensual.map(e =>
+                    e.balance >= 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'
+                ).reverse(),
+                borderWidth: 1,
+            },
+        ],
+    } : null;
+
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-full">
@@ -494,6 +565,62 @@ export default function Contabilidad() {
                 )}
             </div>
 
+            {/* Gráficos Adicionales */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                {chartDataPie && (
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Distribución de Egresos</h3>
+                        <Pie
+                            data={chartDataPie}
+                            options={{
+                                responsive: true,
+                                plugins: {
+                                    legend: { position: 'right' },
+                                    title: { display: false },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function (context) {
+                                                const label = context.label || '';
+                                                const value = context.parsed || 0;
+                                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                                const percentage = ((value / total) * 100).toFixed(1);
+                                                return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                                            }
+                                        }
+                                    }
+                                },
+                            }}
+                        />
+                    </div>
+                )}
+
+                {chartDataFlujoCaja && (
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h3 className="text-lg font-medium text-gray-900 mb-4">Flujo de Caja Mensual</h3>
+                        <Bar
+                            data={chartDataFlujoCaja}
+                            options={{
+                                responsive: true,
+                                plugins: {
+                                    legend: { display: false },
+                                    title: { display: false },
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            callback: function (value) {
+                                                return '$' + value.toFixed(0);
+                                            }
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
+                )}
+            </div>
+
             {/* Filtros */}
             <div className="bg-white rounded-lg shadow p-4 mb-4">
                 <div className="flex items-center gap-2 mb-3">
@@ -581,6 +708,9 @@ export default function Contabilidad() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                     <span className={mov.tipo === 'ingreso' ? 'text-green-600' : 'text-red-600'}>
+                                        {mov.moneda && mov.moneda !== 'ARS' && (
+                                            <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded mr-1 text-gray-600">{mov.moneda}</span>
+                                        )}
                                         ${Number(mov.monto).toFixed(2)}
                                     </span>
                                 </td>
@@ -616,6 +746,95 @@ export default function Contabilidad() {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Configuración de Tasas de Cambio */}
+            <div className="bg-white rounded-lg shadow p-6 mt-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 className="text-lg font-medium text-gray-900">Configuración de Tasas de Cambio</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Estas tasas se aplicarán automáticamente en el catálogo público
+                        </p>
+                    </div>
+                    <button
+                        onClick={loadTasas}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                    >
+                        <RefreshCw className="h-4 w-4" />
+                        Actualizar
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {tasas.map((tasa) => (
+                        <div
+                            key={tasa.moneda}
+                            className={`p-4 border-2 rounded-lg ${tasa.moneda === 'ARS'
+                                    ? 'border-primary-300 bg-primary-50'
+                                    : 'border-gray-200'
+                                }`}
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-gray-900">
+                                    {tasa.simbolo} {tasa.moneda}
+                                </span>
+                                {tasa.moneda === 'ARS' && (
+                                    <span className="text-xs bg-primary-200 text-primary-800 px-2 py-1 rounded">
+                                        Base
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-500 mb-3">{tasa.nombre}</p>
+
+                            {tasa.moneda === 'ARS' ? (
+                                <div className="text-2xl font-bold text-gray-900">1.00</div>
+                            ) : editandoTasa === tasa.moneda ? (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        defaultValue={tasa.tasa}
+                                        className="w-full px-2 py-1 border rounded text-sm"
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                handleUpdateTasa(tasa.moneda, parseFloat(e.target.value));
+                                            }
+                                        }}
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={() => setEditandoTasa(null)}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-2xl font-bold text-gray-900">
+                                        {tasa.tasa.toFixed(2)}
+                                    </span>
+                                    <button
+                                        onClick={() => setEditandoTasa(tasa.moneda)}
+                                        className="text-blue-600 hover:text-blue-800"
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            )}
+
+                            <p className="text-xs text-gray-500 mt-2">
+                                1 ARS = {(1 / tasa.tasa).toFixed(4)} {tasa.moneda}
+                            </p>
+                            {tasa.updated_at && (
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Actualizado: {new Date(tasa.updated_at).toLocaleDateString()}
+                                </p>
+                            )}
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* Modal Nuevo/Editar Egreso */}
@@ -663,6 +882,52 @@ export default function Contabilidad() {
                                         className="w-full px-3 py-2 border rounded-md"
                                         placeholder="0.00"
                                     />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Moneda</label>
+                                    <select
+                                        value={formData.moneda}
+                                        onChange={(e) => {
+                                            const moneda = e.target.value;
+                                            setFormData({
+                                                ...formData,
+                                                moneda,
+                                                // Auto-ajustar tasa de cambio según moneda seleccionada
+                                                tasa_cambio: moneda === 'ARS' ? 1.0 :
+                                                    moneda === 'USD' ? 1000 :
+                                                        moneda === 'EUR' ? 1100 :
+                                                            moneda === 'BRL' ? 180 : 1.0
+                                            });
+                                        }}
+                                        className="w-full px-3 py-2 border rounded-md"
+                                    >
+                                        <option value="ARS">🇦🇷 ARS - Peso Argentino</option>
+                                        <option value="USD">🇺🇸 USD - Dólar</option>
+                                        <option value="EUR">🇪🇺 EUR - Euro</option>
+                                        <option value="BRL">🇧🇷 BRL - Real Brasileño</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Tasa de Cambio a ARS
+                                        <span className="text-xs text-gray-500 ml-2">
+                                            ({formData.moneda === 'ARS' ? 'Base' : `1 ${formData.moneda} = X ARS`})
+                                        </span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.tasa_cambio}
+                                        onChange={(e) => setFormData({ ...formData, tasa_cambio: parseFloat(e.target.value) || 1.0 })}
+                                        className="w-full px-3 py-2 border rounded-md"
+                                        placeholder="1.0"
+                                        disabled={formData.moneda === 'ARS'}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Equivalente en ARS: ${((parseFloat(formData.monto) || 0) * formData.tasa_cambio).toFixed(2)}
+                                    </p>
                                 </div>
 
                                 <div>

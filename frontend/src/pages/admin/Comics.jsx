@@ -541,10 +541,10 @@ export default function Comics() {
   const handleConfirmDeleteFilters = async (filters) => {
     try {
       setDeletingFilters(true);
-      await comicsAPI.deleteByFilters(filters);
+      const result = await comicsAPI.deleteByFilters(filters);
       setShowDeleteFiltersModal(false);
       loadFilteredData(debouncedSearchTerm, filterGenero, filterEditorial, filterSinImagen, filterEstado);
-      alert('Comics eliminados exitosamente');
+      alert(result.message);
     } catch (error) {
       console.error('Error al eliminar comics por filtros:', error);
       alert('Error al eliminar comics: ' + (error.response?.data?.message || error.message));
@@ -691,7 +691,7 @@ export default function Comics() {
         </div>
 
         {/* Filtro por Editorial */}
-        <div>
+        < div >
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <select
@@ -707,10 +707,10 @@ export default function Comics() {
               ))}
             </select>
           </div>
-        </div>
+        </div >
 
         {/* Filtro por Género */}
-        <div>
+        < div >
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <select
@@ -726,10 +726,10 @@ export default function Comics() {
               ))}
             </select>
           </div>
-        </div>
+        </div >
 
         {/* Filtro por Estado */}
-        <div>
+        < div >
           <div className="relative">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <select
@@ -745,10 +745,10 @@ export default function Comics() {
               <option value="Consultar">Consultar</option>
             </select>
           </div>
-        </div>
+        </div >
 
         {/* Filtro Sin Imagen */}
-        <div>
+        < div >
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -759,365 +759,375 @@ export default function Comics() {
             <ImageOff className="w-4 h-4 text-gray-400" />
             <span className="text-sm text-gray-700">Sin imagen</span>
           </label>
-        </div>
-      </div>
+        </div >
+      </div >
 
       {/* Indicador de filtrado */}
-      {isFiltering && (
-        <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Buscando...</span>
-        </div>
-      )}
+      {
+        isFiltering && (
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Buscando...</span>
+          </div>
+        )
+      }
 
       {/* Lista de Comics */}
-      {filteredComics.length === 0 ? (
-        <div className="card text-center py-12">
-          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {comics.length === 0
-              ? 'No hay comics registrados'
-              : 'No se encontraron resultados'}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            {comics.length === 0
-              ? 'Comienza agregando tu primer comic'
-              : 'Intenta con otros filtros o búsqueda'}
-          </p>
-          {comics.length === 0 && (
-            <button
-              onClick={() => handleOpenModal()}
-              className="btn btn-primary inline-flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Agregar Comic</span>
-            </button>
-          )}
-        </div>
-      ) : (
-        <VirtualizedTable
-          comics={filteredComics}
-          hasNextPage={hasNextPage}
-          isNextPageLoading={isNextPageLoading}
-          loadMoreItems={loadMoreItems}
-          sortConfig={sortConfig}
-          handleSort={handleSort}
-          selectedComics={selectedComics}
-          handleSelectComic={handleSelectComic}
-          handleSelectAll={handleSelectAll}
-          handleOpenModal={handleOpenModal}
-          handleDelete={handleDelete}
-          imagenesRotas={imagenesRotas}
-          handleImageError={handleImageError}
-          itemCount={filteredComics.length}
-          itemSize={80}
-        />
-      )}
+      {
+        filteredComics.length === 0 ? (
+          <div className="card text-center py-12">
+            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {comics.length === 0
+                ? 'No hay comics registrados'
+                : 'No se encontraron resultados'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {comics.length === 0
+                ? 'Comienza agregando tu primer comic'
+                : 'Intenta con otros filtros o búsqueda'}
+            </p>
+            {comics.length === 0 && (
+              <button
+                onClick={() => handleOpenModal()}
+                className="btn btn-primary inline-flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Agregar Comic</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <VirtualizedTable
+            comics={filteredComics}
+            hasNextPage={hasNextPage}
+            isNextPageLoading={isNextPageLoading}
+            loadMoreItems={loadMoreItems}
+            sortConfig={sortConfig}
+            handleSort={handleSort}
+            selectedComics={selectedComics}
+            handleSelectComic={handleSelectComic}
+            handleSelectAll={handleSelectAll}
+            handleOpenModal={handleOpenModal}
+            handleDelete={handleDelete}
+            imagenesRotas={imagenesRotas}
+            handleImageError={handleImageError}
+            itemCount={filteredComics.length}
+            itemSize={80}
+          />
+        )
+      }
 
       {/* Contador y Paginación */}
-      {comics.length > 0 && (
-        <div className="card">
-          <div className="flex items-center justify-between">
-            <div className="text-gray-600">
-              Mostrando{' '}
-              <span className="font-bold text-primary-600">
-                {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1}-{Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}
-              </span>{' '}
-              de{' '}
-              <span className="font-bold text-primary-600">
-                {pagination.totalItems}
-              </span>{' '}
-              comics
-              {filterSinImagen && (
-                <span className="text-orange-600 font-medium"> (sin imagen)</span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevPage}
-                disabled={!pagination.hasPrevPage}
-                className="btn btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Anterior
-              </button>
-
-              <span className="px-3 py-2 text-sm text-gray-700 bg-gray-50 rounded-lg">
-                Página {pagination.currentPage} de {pagination.totalPages}
-              </span>
-
-              <button
-                onClick={handleNextPage}
-                disabled={!pagination.hasNextPage}
-                className="btn btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Filters Modal */}
-      {showDeleteFiltersModal && (
-        <DeleteFiltersModal
-          isOpen={showDeleteFiltersModal}
-          onClose={() => setShowDeleteFiltersModal(false)}
-          editoriales={editoriales}
-          onConfirm={handleConfirmDeleteFilters}
-          loading={deletingFilters}
-        />
-      )}
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            {/* Overlay */}
-            <div
-              className="fixed inset-0 transition-opacity bg-black bg-opacity-50"
-              onClick={handleCloseModal}
-            ></div>
-
-            {/* Modal */}
-            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl fade-in">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900">
-                  {editingId ? 'Editar Comic' : 'Nuevo Comic'}
-                </h3>
-                <button
-                  onClick={handleCloseModal}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      {
+        comics.length > 0 && (
+          <div className="card">
+            <div className="flex items-center justify-between">
+              <div className="text-gray-600">
+                Mostrando{' '}
+                <span className="font-bold text-primary-600">
+                  {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1}-{Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}
+                </span>{' '}
+                de{' '}
+                <span className="font-bold text-primary-600">
+                  {pagination.totalItems}
+                </span>{' '}
+                comics
+                {filterSinImagen && (
+                  <span className="text-orange-600 font-medium"> (sin imagen)</span>
+                )}
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">{error}</div>
-                  </div>
-                )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrevPage}
+                  disabled={!pagination.hasPrevPage}
+                  className="btn btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Anterior
+                </button>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Título */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Título *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.titulo}
-                      onChange={(e) =>
-                        setFormData({ ...formData, titulo: e.target.value })
-                      }
-                      placeholder="Ej: The Amazing Spider-Man"
-                      className="input"
-                      disabled={submitting}
-                    />
-                  </div>
+                <span className="px-3 py-2 text-sm text-gray-700 bg-gray-50 rounded-lg">
+                  Página {pagination.currentPage} de {pagination.totalPages}
+                </span>
 
-                  {/* Número de Edición */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Número de Edición *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.numero_edicion}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          numero_edicion: e.target.value,
-                        })
-                      }
-                      placeholder="Ej: 1"
-                      className="input"
-                      disabled={submitting}
-                    />
-                  </div>
-
-                  {/* Editorial */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Editorial *
-                    </label>
-                    <select
-                      required
-                      value={formData.editorial_id}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          editorial_id: e.target.value,
-                        })
-                      }
-                      className="input"
-                      disabled={submitting}
-                    >
-                      <option value="">Seleccionar editorial</option>
-                      {editoriales.map((ed) => (
-                        <option key={ed.id} value={ed.id}>
-                          {ed.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Precio */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Precio *
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={formData.precio}
-                      onChange={(e) =>
-                        setFormData({ ...formData, precio: e.target.value })
-                      }
-                      placeholder="0.00"
-                      className="input"
-                      disabled={submitting}
-                    />
-                  </div>
-
-                  {/* Género */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Género *
-                    </label>
-                    <select
-                      required
-                      value={formData.genero}
-                      onChange={(e) =>
-                        setFormData({ ...formData, genero: e.target.value })
-                      }
-                      className="input"
-                      disabled={submitting}
-                    >
-                      <option value="">Seleccionar género</option>
-                      {generosDisponibles.map((gen) => (
-                        <option key={gen} value={gen}>
-                          {gen}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Estado */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Estado *
-                    </label>
-                    <select
-                      required
-                      value={formData.estado}
-                      onChange={(e) =>
-                        setFormData({ ...formData, estado: e.target.value })
-                      }
-                      className="input"
-                      disabled={submitting}
-                    >
-                      <option value="">Seleccionar estado</option>
-                      <option value="En stock">En stock</option>
-                      <option value="A pedido">A pedido</option>
-                      <option value="Agotado">Agotado</option>
-                      <option value="Novedad">Novedad</option>
-                      <option value="Consultar">Consultar</option>
-                    </select>
-                  </div>
-
-                  {/* Subgénero */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Subgénero (opcional)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.subgenero}
-                      onChange={(e) =>
-                        setFormData({ ...formData, subgenero: e.target.value })
-                      }
-                      placeholder="Ej: Acción, Aventura..."
-                      className="input"
-                      disabled={submitting}
-                    />
-                  </div>
-
-                  {/* URL de Imagen */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      URL de Imagen (opcional)
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.imagen_url}
-                      onChange={(e) =>
-                        setFormData({ ...formData, imagen_url: e.target.value })
-                      }
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                      className="input"
-                      disabled={submitting}
-                    />
-                  </div>
-
-                  {/* Descripción */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Descripción (opcional)
-                    </label>
-                    <textarea
-                      value={formData.descripcion}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          descripcion: e.target.value,
-                        })
-                      }
-                      placeholder="Descripción del comic..."
-                      rows="3"
-                      className="input"
-                      disabled={submitting}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="flex-1 btn btn-ghost"
-                    disabled={submitting}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 btn btn-primary flex items-center justify-center gap-2"
-                    disabled={submitting}
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Guardando...</span>
-                      </>
-                    ) : (
-                      <span>{editingId ? 'Actualizar' : 'Crear'}</span>
-                    )}
-                  </button>
-                </div>
-              </form>
+                <button
+                  onClick={handleNextPage}
+                  disabled={!pagination.hasNextPage}
+                  className="btn btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Siguiente
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+
+      {/* Delete Filters Modal */}
+      {
+        showDeleteFiltersModal && (
+          <DeleteFiltersModal
+            isOpen={showDeleteFiltersModal}
+            onClose={() => setShowDeleteFiltersModal(false)}
+            editoriales={editoriales}
+            onConfirm={handleConfirmDeleteFilters}
+            loading={deletingFilters}
+          />
+        )
+      }
+
+      {/* Modal */}
+      {
+        showModal && (
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+              {/* Overlay */}
+              <div
+                className="fixed inset-0 transition-opacity bg-black bg-opacity-50"
+                onClick={handleCloseModal}
+              ></div>
+
+              {/* Modal */}
+              <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl fade-in">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {editingId ? 'Editar Comic' : 'Nuevo Comic'}
+                  </h3>
+                  <button
+                    onClick={handleCloseModal}
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">{error}</div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Título */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Título *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.titulo}
+                        onChange={(e) =>
+                          setFormData({ ...formData, titulo: e.target.value })
+                        }
+                        placeholder="Ej: The Amazing Spider-Man"
+                        className="input"
+                        disabled={submitting}
+                      />
+                    </div>
+
+                    {/* Número de Edición */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Número de Edición *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.numero_edicion}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            numero_edicion: e.target.value,
+                          })
+                        }
+                        placeholder="Ej: 1"
+                        className="input"
+                        disabled={submitting}
+                      />
+                    </div>
+
+                    {/* Editorial */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Editorial *
+                      </label>
+                      <select
+                        required
+                        value={formData.editorial_id}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            editorial_id: e.target.value,
+                          })
+                        }
+                        className="input"
+                        disabled={submitting}
+                      >
+                        <option value="">Seleccionar editorial</option>
+                        {editoriales.map((ed) => (
+                          <option key={ed.id} value={ed.id}>
+                            {ed.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Precio */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Precio *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={formData.precio}
+                        onChange={(e) =>
+                          setFormData({ ...formData, precio: e.target.value })
+                        }
+                        placeholder="0.00"
+                        className="input"
+                        disabled={submitting}
+                      />
+                    </div>
+
+                    {/* Género */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Género *
+                      </label>
+                      <select
+                        required
+                        value={formData.genero}
+                        onChange={(e) =>
+                          setFormData({ ...formData, genero: e.target.value })
+                        }
+                        className="input"
+                        disabled={submitting}
+                      >
+                        <option value="">Seleccionar género</option>
+                        {generosDisponibles.map((gen) => (
+                          <option key={gen} value={gen}>
+                            {gen}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Estado */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Estado *
+                      </label>
+                      <select
+                        required
+                        value={formData.estado}
+                        onChange={(e) =>
+                          setFormData({ ...formData, estado: e.target.value })
+                        }
+                        className="input"
+                        disabled={submitting}
+                      >
+                        <option value="">Seleccionar estado</option>
+                        <option value="En stock">En stock</option>
+                        <option value="A pedido">A pedido</option>
+                        <option value="Agotado">Agotado</option>
+                        <option value="Novedad">Novedad</option>
+                        <option value="Consultar">Consultar</option>
+                      </select>
+                    </div>
+
+                    {/* Subgénero */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Subgénero (opcional)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.subgenero}
+                        onChange={(e) =>
+                          setFormData({ ...formData, subgenero: e.target.value })
+                        }
+                        placeholder="Ej: Acción, Aventura..."
+                        className="input"
+                        disabled={submitting}
+                      />
+                    </div>
+
+                    {/* URL de Imagen */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        URL de Imagen (opcional)
+                      </label>
+                      <input
+                        type="url"
+                        value={formData.imagen_url}
+                        onChange={(e) =>
+                          setFormData({ ...formData, imagen_url: e.target.value })
+                        }
+                        placeholder="https://ejemplo.com/imagen.jpg"
+                        className="input"
+                        disabled={submitting}
+                      />
+                    </div>
+
+                    {/* Descripción */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Descripción (opcional)
+                      </label>
+                      <textarea
+                        value={formData.descripcion}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            descripcion: e.target.value,
+                          })
+                        }
+                        placeholder="Descripción del comic..."
+                        rows="3"
+                        className="input"
+                        disabled={submitting}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={handleCloseModal}
+                      className="flex-1 btn btn-ghost"
+                      disabled={submitting}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 btn btn-primary flex items-center justify-center gap-2"
+                      disabled={submitting}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Guardando...</span>
+                        </>
+                      ) : (
+                        <span>{editingId ? 'Actualizar' : 'Crear'}</span>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )
+      }
+    </div >
   );
 }

@@ -23,6 +23,7 @@ const googleSheetsRoutes = require('./routes/googleSheets');
 const notificacionesRoutes = require('./routes/notificaciones');
 const reviewsRoutes = require('./routes/reviews');
 const contabilidadRoutes = require('./routes/contabilidad');
+const tasasCambioRoutes = require('./routes/tasasCambio');
 
 // Importar cron job de notificaciones
 require('./cron/notificaciones');
@@ -84,6 +85,7 @@ app.use('/api/ventas', ventasRoutes);
 app.use('/api/sheets', googleSheetsRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/contabilidad', contabilidadRoutes);
+app.use('/api/tasas-cambio', tasasCambioRoutes);
 
 // Middleware de manejo de errores
 app.use(notFound);

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthProviderClientes } from './contexts/AuthContextClientes';
 import { CarritoProvider } from './contexts/CarritoContext';
+import { CurrencyProvider } from './context/CurrencyContext';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -32,48 +33,50 @@ function App() {
     <AuthProvider>
       <AuthProviderClientes>
         <CarritoProvider>
-          <Router>
-            <Routes>
-              {/* Ruta pública - Catálogo */}
-              <Route path="/" element={<CatalogoPublico />} />
-              <Route path="/catalogo" element={<CatalogoPublico />} />
-              <Route path="/catalogo-completo" element={<CatalogoCompleto />} />
-              <Route path="image-checker" element={<ImageChecker />} />
+          <CurrencyProvider>
+            <Router>
+              <Routes>
+                {/* Ruta pública - Catálogo */}
+                <Route path="/" element={<CatalogoPublico />} />
+                <Route path="/catalogo" element={<CatalogoPublico />} />
+                <Route path="/catalogo-completo" element={<CatalogoCompleto />} />
+                <Route path="image-checker" element={<ImageChecker />} />
 
-              {/* Rutas de autenticación de clientes */}
-              <Route path="/register" element={<Register />} />
-              <Route path="/login-cliente" element={<LoginCliente />} />
-              <Route path="/verify-email/:token" element={<VerifyEmail />} />
+                {/* Rutas de autenticación de clientes */}
+                <Route path="/register" element={<Register />} />
+                <Route path="/login-cliente" element={<LoginCliente />} />
+                <Route path="/verify-email/:token" element={<VerifyEmail />} />
 
-              {/* Rutas protegidas de clientes */}
-              <Route path="/perfil" element={<PerfilCliente />} />
+                {/* Rutas protegidas de clientes */}
+                <Route path="/perfil" element={<PerfilCliente />} />
 
-              {/* Login Admin */}
-              <Route path="/login" element={<Login />} />
+                {/* Login Admin */}
+                <Route path="/login" element={<Login />} />
 
-              {/* Rutas protegidas - Admin */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="editoriales" element={<Editoriales />} />
-                <Route path="comics" element={<Comics />} />
-                <Route path="stock" element={<Stock />} />
-                <Route path="clientes" element={<Clientes />} />
-                <Route path="ventas" element={<Ventas />} />
-                <Route path="contabilidad" element={<Contabilidad />} />
-                <Route path="configuracion" element={<Configuracion />} />
-              </Route>
+                {/* Rutas protegidas - Admin */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Dashboard />} />
+                  <Route path="editoriales" element={<Editoriales />} />
+                  <Route path="comics" element={<Comics />} />
+                  <Route path="stock" element={<Stock />} />
+                  <Route path="clientes" element={<Clientes />} />
+                  <Route path="ventas" element={<Ventas />} />
+                  <Route path="contabilidad" element={<Contabilidad />} />
+                  <Route path="configuracion" element={<Configuracion />} />
+                </Route>
 
-              {/* Ruta por defecto */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Router>
+                {/* Ruta por defecto */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Router>
+          </CurrencyProvider>
         </CarritoProvider>
       </AuthProviderClientes>
     </AuthProvider>

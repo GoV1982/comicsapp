@@ -62,7 +62,37 @@ const getComics = async (req, res) => {
         }
 
         // Obtener el total de registros para paginación
-        const countQuery = `SELECT COUNT(*) as total FROM (${query}) as subquery`;
+        // Construir una query específica para contar comics únicos que coinciden con los filtros
+        let countQuery = `
+            SELECT COUNT(DISTINCT c.id) as total
+            FROM comics c
+            LEFT JOIN editoriales e ON c.editorial_id = e.id
+            LEFT JOIN stock s ON c.id = s.comic_id
+            LEFT JOIN reviews r ON c.id = r.comic_id
+            WHERE 1=1
+        `;
+
+        // Agregar los mismos filtros que la query principal
+        if (search) {
+            countQuery += ` AND (c.titulo LIKE ? OR c.numero_edicion LIKE ?)`;
+        }
+        if (genero) {
+            countQuery += ` AND c.genero = ?`;
+        }
+        if (editorial) {
+            countQuery += ` AND c.editorial_id = ?`;
+        }
+        if (estado) {
+            if (estado === 'Novedad') {
+                countQuery += ` AND c.estado LIKE ?`;
+            } else {
+                countQuery += ` AND c.estado = ?`;
+            }
+        }
+        if (sinImagen) {
+            countQuery += ` AND (c.imagen_url IS NULL OR c.imagen_url = '')`;
+        }
+
         const countResult = await getOne(countQuery, params);
         const total = countResult.total;
 
@@ -211,79 +241,79 @@ const deleteComicsByFilters = async (req, res) => {
             });
         }
 
-        // Primero, obtener los IDs de los comics que se van a eliminar
-        let selectQuery;
+        // Construir cláusula WHERE base
+        let whereClause = 'WHERE 1=1';
         const params = [];
 
-        if (deleteAll) {
-            // Seleccionar todos los comics
-            selectQuery = 'SELECT id FROM comics';
-        } else {
-            // Construir consulta con filtros
-            selectQuery = 'SELECT id FROM comics WHERE 1=1';
-
+        if (!deleteAll) {
             if (editorial_id) {
-                selectQuery += ' AND editorial_id = ?';
+                whereClause += ' AND editorial_id = ?';
                 params.push(editorial_id);
             }
 
             if (titulo) {
-                selectQuery += ' AND titulo LIKE ?';
+                whereClause += ' AND titulo LIKE ?';
                 params.push(`%${titulo}%`);
             }
         }
 
-        // Obtener los IDs de los comics a eliminar
-        const comicsToDelete = await getAll(selectQuery, params);
+        // 1. Contar total de comics que coinciden con los filtros
+        const countQuery = `SELECT COUNT(*) as total FROM comics ${whereClause}`;
+        const countResult = await getOne(countQuery, params);
+        const totalMatching = countResult.total;
 
-        if (comicsToDelete.length === 0) {
+        if (totalMatching === 0) {
             return res.json({
                 message: 'No se encontraron comics con los filtros especificados',
                 deletedCount: 0
             });
         }
 
-        const comicIds = comicsToDelete.map(c => c.id);
-        console.log(`Eliminando ${comicIds.length} comics:`, comicIds);
+        // 2. Identificar comics que SE PUEDEN eliminar (no tienen ventas ni compras)
+        // Excluimos los que están en ventas_detalle o compras_proveedor_detalle
+        const safeQuery = `
+            SELECT id FROM comics 
+            ${whereClause}
+            AND id NOT IN (SELECT DISTINCT comic_id FROM ventas_detalle)
+            AND id NOT IN (SELECT DISTINCT comic_id FROM compras_proveedor_detalle)
+        `;
 
-        // Eliminar referencias en carritos_items para cada comic
-        for (const comicId of comicIds) {
-            await runQuery('DELETE FROM carritos_items WHERE comic_id = ?', [comicId]);
-        }
-        console.log('Referencias en carritos_items eliminadas');
+        const safeComics = await getAll(safeQuery, params);
+        const safeIds = safeComics.map(c => c.id);
+        const skippedCount = totalMatching - safeIds.length;
 
-        // Eliminar referencias en reservas para cada comic
-        for (const comicId of comicIds) {
-            await runQuery('DELETE FROM reservas WHERE comic_id = ?', [comicId]);
-        }
-        console.log('Referencias en reservas eliminadas');
+        console.log(`Intentando eliminar ${totalMatching} comics. ${safeIds.length} son seguros de eliminar. ${skippedCount} omitidos.`);
 
-        // Ahora eliminar los comics
-        let deleteQuery;
-        const deleteParams = [];
+        if (safeIds.length > 0) {
+            // Eliminar en lotes para evitar límites de SQLite
+            const CHUNK_SIZE = 100; // Conservador
+            for (let i = 0; i < safeIds.length; i += CHUNK_SIZE) {
+                const chunk = safeIds.slice(i, i + CHUNK_SIZE);
+                const placeholders = chunk.map(() => '?').join(',');
 
-        if (deleteAll) {
-            deleteQuery = 'DELETE FROM comics';
-        } else {
-            deleteQuery = 'DELETE FROM comics WHERE 1=1';
+                // Eliminar referencias en carritos_items
+                try {
+                    await runQuery(`DELETE FROM carritos_items WHERE comic_id IN (${placeholders})`, chunk);
+                } catch (e) {
+                    console.warn('Error al eliminar de carritos_items:', e.message);
+                }
 
-            if (editorial_id) {
-                deleteQuery += ' AND editorial_id = ?';
-                deleteParams.push(editorial_id);
+                // Eliminar referencias en reservas
+                await runQuery(`DELETE FROM reservas WHERE comic_id IN (${placeholders})`, chunk);
+
+                // Eliminar los comics
+                await runQuery(`DELETE FROM comics WHERE id IN (${placeholders})`, chunk);
             }
-
-            if (titulo) {
-                deleteQuery += ' AND titulo LIKE ?';
-                deleteParams.push(`%${titulo}%`);
-            }
         }
-
-        const result = await runQuery(deleteQuery, deleteParams);
 
         res.json({
-            message: result.changes === 1 ? 'Comic eliminado exitosamente' : `${result.changes} comics eliminados exitosamente`,
-            deletedCount: result.changes
+            message: safeIds.length > 0
+                ? `Se eliminaron ${safeIds.length} comics exitosamente.${skippedCount > 0 ? ` ${skippedCount} comics no se pudieron eliminar porque tienen historial de ventas o compras.` : ''}`
+                : `No se pudieron eliminar los comics seleccionados (${skippedCount}) porque todos tienen historial de ventas o compras asociado.`,
+            deletedCount: safeIds.length,
+            skippedCount
         });
+
     } catch (error) {
         console.error('Error al eliminar comics por filtros:', error);
         res.status(500).json({
