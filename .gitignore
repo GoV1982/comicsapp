@@ -4,3 +4,4 @@ backend/.env
 backups/
 *.log
 .DS_Store
+backend/service-account-key.json
