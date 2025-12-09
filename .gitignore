@@ -1,7 +1,11 @@
 node_modules/
-backend/database.db
-backend/.env
-backups/
+.env
+.env.local
 *.log
 .DS_Store
-backend/service-account-key.json
+database.db
+service-account-key.json
+dist/
+build/
+*.sqlite
+*.db
