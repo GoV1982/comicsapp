@@ -7,10 +7,46 @@ const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID || 'YOUR_SPREADS
 
 // Función para autenticar con Google
 async function getAuthClient() {
+    let credentials;
+
+    // Opción 1: Variable de entorno con JSON completo (PRODUCCIÓN)
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+        try {
+            credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+            console.log('🔐 Usando credenciales de Google desde variable de entorno');
+        } catch (error) {
+            console.error('❌ Error parseando GOOGLE_SERVICE_ACCOUNT_KEY:', error.message);
+            throw new Error('Credenciales de Google inválidas en variable de entorno');
+        }
+    }
+    // Opción 2: Archivo local (DESARROLLO)
+    else if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE) {
+        try {
+            const keyFile = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE;
+            credentials = require(keyFile);
+            console.log(`🔐 Usando credenciales de Google desde archivo: ${keyFile}`);
+        } catch (error) {
+            console.error(`❌ Error cargando archivo ${process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE}:`, error.message);
+            throw new Error(`No se pudo cargar el archivo de credenciales: ${error.message}`);
+        }
+    }
+    // Opción 3: Fallback a archivo por defecto
+    else {
+        try {
+            credentials = require('../service-account-key.json');
+            console.log('🔐 Usando credenciales de Google desde ./service-account-key.json');
+        } catch (error) {
+            console.warn('⚠️  Google Sheets API no configurada. Las funciones de Sheets no funcionarán.');
+            console.warn('   Para configurar, define GOOGLE_SERVICE_ACCOUNT_KEY o GOOGLE_SERVICE_ACCOUNT_KEY_FILE');
+            return null;
+        }
+    }
+
     const auth = new google.auth.GoogleAuth({
-        keyFile: process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || './service-account-key.json',
+        credentials,
         scopes: SCOPES,
     });
+
     return auth;
 }
 
@@ -18,6 +54,13 @@ async function getAuthClient() {
 async function getSheetData(range) {
     try {
         const auth = await getAuthClient();
+
+        // Si no hay auth configurado, retornar array vacío
+        if (!auth) {
+            console.warn('⚠️  Google Sheets no configurado. Retornando datos vacíos.');
+            return [];
+        }
+
         const sheets = google.sheets({ version: 'v4', auth });
 
         const response = await sheets.spreadsheets.values.get({
