@@ -154,7 +154,7 @@ const enviarNotificacionesSimilares = async () => {
     const clientes = await getAll(`
       SELECT c.id, c.nombre, c.email, conf.notificaciones, conf.ultima_notificacion_similares
       FROM clientes c
-      LEFT JOIN configuracion_clientes conf ON c.id = conf.cliente_id
+      LEFT JOIN configuracion_cliente conf ON c.id = conf.cliente_id
       WHERE c.email_verificado = 1 AND (conf.notificaciones IS NULL OR conf.notificaciones = 1)
     `);
 
@@ -173,7 +173,7 @@ const enviarNotificacionesSimilares = async () => {
       try {
         // Obtener favoritos del cliente
         const favoritosRaw = await getOne(
-          'SELECT titulos_favoritos FROM configuracion_clientes WHERE cliente_id = ?',
+          'SELECT titulos_favoritos FROM configuracion_cliente WHERE cliente_id = ?',
           [cliente.id]
         );
 
@@ -232,7 +232,7 @@ const enviarNotificacionesSimilares = async () => {
 
         // Actualizar fecha de última notificación
         await runQuery(
-          'UPDATE configuracion_clientes SET ultima_notificacion_similares = CURRENT_TIMESTAMP WHERE cliente_id = ?',
+          'UPDATE configuracion_cliente SET ultima_notificacion_similares = CURRENT_TIMESTAMP WHERE cliente_id = ?',
           [cliente.id]
         );
 

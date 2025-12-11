@@ -56,7 +56,7 @@ const register = async (req, res) => {
 
     // Crear configuración por defecto
     await runQuery(
-      'INSERT INTO configuracion_clientes (cliente_id, notificaciones, titulos_favoritos) VALUES (?, 1, ?)',
+      'INSERT INTO configuracion_cliente (cliente_id, notificaciones, titulos_favoritos) VALUES (?, 1, ?)',
       [result.id, JSON.stringify([])]
     );
 
