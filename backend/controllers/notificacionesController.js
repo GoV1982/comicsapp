@@ -152,10 +152,10 @@ const enviarNotificacionesSimilares = async () => {
 
     // Obtener todos los clientes con notificaciones habilitadas
     const clientes = await getAll(`
-      SELECT c.id, c.nombre, c.email, conf.notificaciones, conf.ultima_notificacion_similares
+      SELECT c.id, c.nombre, c.email, conf.notificaciones_similares, conf.ultima_notificacion_similares
       FROM clientes c
       LEFT JOIN configuracion_cliente conf ON c.id = conf.cliente_id
-      WHERE c.email_verificado = 1 AND (conf.notificaciones IS NULL OR conf.notificaciones = 1)
+      WHERE c.email_verificado = 1 AND (conf.notificaciones_similares IS NULL OR conf.notificaciones_similares = 1)
     `);
 
     // Obtener todos los cómics disponibles
