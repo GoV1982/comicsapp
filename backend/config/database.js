@@ -1,18 +1,32 @@
 // backend/config/database.js
-const Database = require('better-sqlite3');
-const path = require('path');
-const bcrypt = require('bcryptjs');
-require('dotenv').config();
 
-const dbPath = path.join(__dirname, '..', 'database.db');
+// Detectar si debemos usar Turso (SQLite en la nube)
+const useTurso = process.env.NODE_ENV === 'production' &&
+  process.env.DATABASE_URL &&
+  process.env.DATABASE_URL.includes('turso.io');
 
-const db = new Database(dbPath);
+if (useTurso) {
+  console.log('🌐 Usando Turso (SQLite Edge Database) para producción');
+  module.exports = require('./database-turso');
+} else {
+  console.log('💾 Usando SQLite local para desarrollo');
 
-// Habilitar foreign keys
-db.exec('PRAGMA foreign_keys = ON');
+  // Código SQLite local continúa aquí...
+  const Database = require('better-sqlite3');
+  const path = require('path');
+  const bcrypt = require('bcryptjs');
+  require('dotenv').config();
 
-// Schema completo de la base de datos
-const schema = `
+  const dbPath = path.join(__dirname, '..', 'database.db');
+
+  const db = new Database(dbPath);
+
+
+  // Habilitar foreign keys
+  db.exec('PRAGMA foreign_keys = ON');
+
+  // Schema completo de la base de datos
+  const schema = `
 -- Tabla de usuarios (administradores)
 CREATE TABLE IF NOT EXISTS usuarios (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -226,8 +240,8 @@ CREATE INDEX IF NOT EXISTS idx_reservas_estado ON reservas(estado);
 CREATE INDEX IF NOT EXISTS idx_reservas_fecha_exp ON reservas(fecha_expiracion);
 `;
 
-// Triggers
-const triggers = `
+  // Triggers
+  const triggers = `
 -- Trigger: Actualizar timestamp en comics
 CREATE TRIGGER IF NOT EXISTS update_comic_timestamp 
 AFTER UPDATE ON comics
@@ -274,78 +288,80 @@ BEGIN
 END;
 `;
 
-async function initDatabase() {
-  try {
-    // Ejecutar esquema y triggers
-    db.exec(schema);
-    console.log('✅ Tablas creadas correctamente');
-    db.exec(triggers);
-    console.log('✅ Triggers creados correctamente');
+  async function initDatabase() {
+    try {
+      // Ejecutar esquema y triggers
+      db.exec(schema);
+      console.log('✅ Tablas creadas correctamente');
+      db.exec(triggers);
+      console.log('✅ Triggers creados correctamente');
 
-    // Crear usuario admin inicial si no existe
-    const adminUsername = process.env.ADMIN_USERNAME || 'Admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-    const adminName = process.env.ADMIN_NAME || 'Administrador';
-    const adminEmail = process.env.ADMIN_EMAIL || '';
+      // Crear usuario admin inicial si no existe
+      const adminUsername = process.env.ADMIN_USERNAME || 'Admin';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+      const adminName = process.env.ADMIN_NAME || 'Administrador';
+      const adminEmail = process.env.ADMIN_EMAIL || '';
 
-    const row = db.prepare('SELECT id FROM usuarios WHERE username = ?').get(adminUsername);
-    if (!row) {
-      const hashedPassword = await bcrypt.hash(adminPassword, 10);
-      db.prepare('INSERT INTO usuarios (username, password, nombre, email) VALUES (?, ?, ?, ?)')
-        .run(adminUsername, hashedPassword, adminName, adminEmail);
-      console.log('✅ Usuario admin creado correctamente');
-      console.log(`   Usuario: ${adminUsername}`);
-      console.log(`   Contraseña: ${adminPassword}`);
-      console.log('   ⚠️  Cambia la contraseña después del primer login');
-    } else {
-      console.log('ℹ️  Usuario admin ya existe');
+      const row = db.prepare('SELECT id FROM usuarios WHERE username = ?').get(adminUsername);
+      if (!row) {
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        db.prepare('INSERT INTO usuarios (username, password, nombre, email) VALUES (?, ?, ?, ?)')
+          .run(adminUsername, hashedPassword, adminName, adminEmail);
+        console.log('✅ Usuario admin creado correctamente');
+        console.log(`   Usuario: ${adminUsername}`);
+        console.log(`   Contraseña: ${adminPassword}`);
+        console.log('   ⚠️  Cambia la contraseña después del primer login');
+      } else {
+        console.log('ℹ️  Usuario admin ya existe');
+      }
+    } catch (error) {
+      console.error('❌ Error al inicializar la base de datos:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('❌ Error al inicializar la base de datos:', error);
-    throw error;
   }
-}
 
-const runQuery = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
+  const runQuery = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const stmt = db.prepare(sql);
+        const info = stmt.run(...(Array.isArray(params) ? params : [params]));
+        resolve({ id: info.lastInsertRowid, changes: info.changes });
+      } catch (err) {
+        console.error('Database error during runQuery:');
+        console.error('SQL:', sql);
+        console.error('Params:', params);
+        console.error(err);
+        reject(err);
+      }
+    });
+  };
+
+  const getOne = (sql, params = []) => {
     try {
       const stmt = db.prepare(sql);
-      const info = stmt.run(...(Array.isArray(params) ? params : [params]));
-      resolve({ id: info.lastInsertRowid, changes: info.changes });
+      const row = stmt.get(...params);
+      return Promise.resolve(row);
     } catch (err) {
-      console.error('Database error during runQuery:');
-      console.error('SQL:', sql);
-      console.error('Params:', params);
-      console.error(err);
-      reject(err);
+      return Promise.reject(err);
     }
-  });
-};
+  };
 
-const getOne = (sql, params = []) => {
-  try {
-    const stmt = db.prepare(sql);
-    const row = stmt.get(...params);
-    return Promise.resolve(row);
-  } catch (err) {
-    return Promise.reject(err);
-  }
-};
+  const getAll = (sql, params = []) => {
+    try {
+      const stmt = db.prepare(sql);
+      const rows = stmt.all(...params);
+      return Promise.resolve(rows);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  };
 
-const getAll = (sql, params = []) => {
-  try {
-    const stmt = db.prepare(sql);
-    const rows = stmt.all(...params);
-    return Promise.resolve(rows);
-  } catch (err) {
-    return Promise.reject(err);
-  }
-};
+  module.exports = {
+    db,
+    initDatabase,
+    runQuery,
+    getOne,
+    getAll
+  };
 
-module.exports = {
-  db,
-  initDatabase,
-  runQuery,
-  getOne,
-  getAll
-};
+} // Cierre del bloque else (SQLite local)
