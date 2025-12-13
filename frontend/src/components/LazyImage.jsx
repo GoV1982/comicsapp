@@ -10,7 +10,8 @@ export default function LazyImage({ src, alt, className, onError, ...props }) {
   // Función para obtener la URL proxied si es externa
   const getProxiedSrc = (src) => {
     if (src && src.startsWith('http')) {
-      return `/api/public/proxy-image?url=${encodeURIComponent(src)}`;
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
+      return `${apiUrl}/public/proxy-image?url=${encodeURIComponent(src)}`;
     }
     return src;
   };
