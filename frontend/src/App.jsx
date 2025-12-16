@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { AuthProviderClientes } from './contexts/AuthContextClientes';
 import { CarritoProvider } from './contexts/CarritoContext';
@@ -28,6 +29,20 @@ import LoginCliente from './pages/LoginCliente';
 import PerfilCliente from './pages/PerfilCliente';
 import VerifyEmail from './pages/VerifyEmail';
 
+// Componente para actualizar el título dinámicamente
+const PageTitleUpdater = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Verificar si estamos en rutas de admin
+    const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname === '/login';
+
+    document.title = isAdminRoute ? 'Comiqueria Admin' : 'Comiqueria';
+  }, [location]);
+
+  return null;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -35,6 +50,7 @@ function App() {
         <CarritoProvider>
           <CurrencyProvider>
             <Router>
+              <PageTitleUpdater />
               <Routes>
                 {/* Ruta pública - Catálogo */}
                 <Route path="/" element={<CatalogoPublico />} />
